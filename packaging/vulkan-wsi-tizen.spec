@@ -11,6 +11,8 @@ BuildRequires: autoconf > 2.64
 BuildRequires: automake >= 1.11
 BuildRequires: libtool >= 2.2
 
+%global TZ_SYS_RO_SHARE  %{?TZ_SYS_RO_SHARE:%TZ_SYS_RO_SHARE}%{!?TZ_SYS_RO_SHARE:/usr/share}
+
 %description
 Vulkan WSI (Window System Integration) Layer for Tizen
 
@@ -23,8 +25,11 @@ make %{?_smp_mflags}
 
 %install
 %make_install
+mkdir -p %{buildroot}/%{TZ_SYS_RO_SHARE}/license
+cp -a %{_builddir}/%{buildsubdir}/COPYING %{buildroot}/%{TZ_SYS_RO_SHARE}/license/%{name}
 
 %files -n %{name}
+%{TZ_SYS_RO_SHARE}/license/%{name}
 %defattr(-,root,root,-)
 %{_libdir}/vulkan/vulkan-wsi-tizen.so
 /etc/vulkan/icd.d/vulkan-wsi-tizen.json
