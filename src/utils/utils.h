@@ -27,6 +27,7 @@
 
 #include <config.h>
 #include <assert.h>
+#include <vulkan/vulkan.h>
 
 #if defined(__GNUC__) && __GNUC__ >= 4
 #define VK_EXPORT __attribute__((visibility("default")))
@@ -66,6 +67,8 @@
 	} while (0)
 
 #define VK_ASSERT(exp)	assert(exp)
+
+typedef VkBool32	vk_bool_t;
 
 void
 vk_log(const char *domain, const char *file, int line, const char *format, ...);
