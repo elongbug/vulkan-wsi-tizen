@@ -73,4 +73,102 @@ typedef VkBool32	vk_bool_t;
 void
 vk_log(const char *domain, const char *file, int line, const char *format, ...);
 
+/* Linked list. */
+typedef struct vk_list vk_list_t;
+
+#define vk_list_for_each_list(pos, head)							\
+	for (pos = (head)->next;										\
+		 pos != (head);												\
+		 pos = pos->next)
+
+#define vk_list_for_each_list_safe(pos, tmp, head)					\
+	for (pos = (head)->next, tmp = pos->next;						\
+		 pos != (head);												\
+		 pos = tmp, tmp = pos->next)
+
+#define vk_list_for_each_list_reverse(pos, head)					\
+	for (pos = (head)->prev;										\
+		 pos != (head);												\
+		 pos = pos->prev)
+
+#define vk_list_for_each_list_reverse_safe(pos, tmp, head)			\
+	for (pos = (head)->prev, tmp = pos->prev;						\
+		 pos != (head);												\
+		 pos = tmp, tmp = pos->prev)
+
+#define vk_list_for_each(pos, head, member)							\
+	for (pos = vk_container_of((head)->next, pos, member);			\
+		 &pos->member != (head);									\
+		 pos = vk_container_of(pos->member.next, pos, member))
+
+#define vk_list_for_each_safe(pos, tmp, head, member)				\
+	for (pos = vk_container_of((head)->next, pos, member),			\
+		 tmp = vk_container_of((pos)->member.next, tmp, member);	\
+		 &pos->member != (head);									\
+		 pos = tmp,													\
+		 tmp = vk_container_of(pos->member.next, tmp, member))
+
+#define vk_list_for_each_reverse(pos, head, member)					\
+	for (pos = vk_container_of((head)->prev, pos, member);			\
+		 &pos->member != (head);									\
+		 pos = vk_container_of(pos->member.prev, pos, member))
+
+#define vk_list_for_each_reverse_safe(pos, tmp, head, member)		\
+	for (pos = vk_container_of((head)->prev, pos, member),			\
+		 tmp = vk_container_of((pos)->member.prev, tmp, member);	\
+		 &pos->member != (head);									\
+		 pos = tmp,													\
+		 tmp = vk_container_of(pos->member.prev, tmp, member))
+
+struct vk_list
+{
+	vk_list_t *prev;
+	vk_list_t *next;
+	void      *item;
+};
+
+static inline void
+vk_list_init(vk_list_t *list)
+{
+	list->prev = list;
+	list->next = list;
+	list->item = NULL;
+}
+
+static inline void
+vk_list_insert(vk_list_t *list, vk_list_t *elm)
+{
+	elm->prev = list;
+	elm->next = list->next;
+	list->next = elm;
+	elm->next->prev = elm;
+}
+
+static inline void
+vk_list_remove(vk_list_t *list)
+{
+	list->prev->next = list->next;
+	list->next->prev = list->prev;
+	list->prev = NULL;
+	list->next = NULL;
+}
+
+static inline vk_bool_t
+vk_list_empty(const vk_list_t *list)
+{
+	return list->next == list;
+}
+
+static inline void
+vk_list_insert_list(vk_list_t *list, vk_list_t *other)
+{
+	if (vk_list_empty(other))
+		return;
+
+	other->next->prev = list;
+	other->prev->next = list->next;
+	list->next->prev = other->prev;
+	list->next = other->next;
+}
+
 #endif	/* UTILS_H */
