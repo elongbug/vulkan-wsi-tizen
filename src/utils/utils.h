@@ -171,4 +171,72 @@ vk_list_insert_list(vk_list_t *list, vk_list_t *other)
 	list->next = other->next;
 }
 
+/* Hash table. */
+typedef struct vk_map		vk_map_t;
+typedef struct vk_map_entry	vk_map_entry_t;
+
+typedef void (*vk_free_func_t)(void *);
+typedef int  (*vk_hash_func_t)(const void *key, int key_length);
+typedef int  (*vk_key_length_func_t)(const void *key);
+typedef int  (*vk_key_compare_func_t)(const void *key0, int len0, const void *key1, int len1);
+
+struct vk_map
+{
+	vk_hash_func_t			  hash_func;
+	vk_key_length_func_t	  key_length_func;
+	vk_key_compare_func_t	  key_compare_func;
+
+	int						  bucket_bits;
+	int						  bucket_size;
+	int						  bucket_mask;
+	vk_map_entry_t			**buckets;
+};
+
+void
+vk_map_init(vk_map_t				*map,
+			int						 bucket_bits,
+			vk_hash_func_t			 hash_func,
+			vk_key_length_func_t	 key_length_func,
+			vk_key_compare_func_t	 key_compare_func,
+			void					*buckets);
+
+void
+vk_map_int32_init(vk_map_t *map, int bucket_bits, void *buckets);
+
+void
+vk_map_int64_init(vk_map_t *map, int bucket_bits, void *buckets);
+
+void
+vk_map_string_init(vk_map_t *map, int bucket_bits, void *buckets);
+
+void
+vk_map_fini(vk_map_t *map);
+
+vk_map_t *
+vk_map_create(int					bucket_bits,
+			  vk_hash_func_t		hash_func,
+			  vk_key_length_func_t	key_length_func,
+			  vk_key_compare_func_t	key_compare_func);
+
+vk_map_t *
+vk_map_int32_create(int bucket_bits);
+
+vk_map_t *
+vk_map_int64_create(int bucket_bits);
+
+vk_map_t *
+vk_map_string_create(int bucket_bits);
+
+void
+vk_map_destroy(vk_map_t *map);
+
+void
+vk_map_clear(vk_map_t *map);
+
+void *
+vk_map_get(vk_map_t *map, const void *key);
+
+void
+vk_map_set(vk_map_t *map, const void *key, void *data, vk_free_func_t free_func);
+
 #endif	/* UTILS_H */
