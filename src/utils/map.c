@@ -119,7 +119,6 @@ int32_key_compare(const void *key0, int len0, const void *key1, int len1)
 	return (int)(k0 - k1);
 }
 
-
 void
 vk_map_int32_init(vk_map_t *map, int bucket_bits, void *buckets)
 {
@@ -319,18 +318,17 @@ vk_map_clear(vk_map_t *map)
 void *
 vk_map_get(vk_map_t *map, const void *key)
 {
-	vk_map_entry_t *curr = *get_bucket(map, key);
+	vk_map_entry_t	*curr = *get_bucket(map, key);
+	int				 len0 = 0;
+	int				 len1 = 0;
+
+	if (map->key_length_func)
+		len1 = map->key_length_func(key);
 
 	while (curr)
 	{
-		int len0 = 0;
-		int len1 = 0;
-
 		if (map->key_length_func)
-		{
 			len0 = map->key_length_func(curr->key);
-			len1 = map->key_length_func(key);
-		}
 
 		if (map->key_compare_func(curr->key, len0, key, len1) == 0)
 			return curr->data;
@@ -347,18 +345,17 @@ vk_map_set(vk_map_t *map, const void *key, void *data, vk_free_func_t free_func)
 	vk_map_entry_t	**bucket = get_bucket(map, key);
 	vk_map_entry_t	 *curr = *bucket;
 	vk_map_entry_t	 *prev = NULL;
+	int 			  len0 = 0;
+	int 			  len1 = 0;
+
+	if (map->key_length_func)
+		len1 = map->key_length_func(key);
 
 	/* Find existing entry for the key. */
 	while (curr)
 	{
-		int len0 = 0;
-		int len1 = 0;
-
 		if (map->key_length_func)
-		{
 			len0 = map->key_length_func(curr->key);
-			len1 = map->key_length_func(key);
-		}
 
 		if (map->key_compare_func(curr->key, len0, key, len1) == 0)
 		{
@@ -397,10 +394,16 @@ vk_map_set(vk_map_t *map, const void *key, void *data, vk_free_func_t free_func)
 	}
 
 	/* Allocate a new entry. */
-	curr = malloc(sizeof(vk_map_entry_t));
+	curr = malloc(sizeof(vk_map_entry_t) + len1);
 	VK_CHECK(curr, return, "malloc() failed.\n");
 
-	curr->key = key;
+	if (len1) {
+		curr->key = curr + 1;
+		memcpy((void *)curr->key, key, len1);
+	} else {
+		curr->key = key;
+	}
+
 	curr->data = data;
 	curr->free_func = free_func;
 
