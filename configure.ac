@@ -62,7 +62,7 @@ AC_ARG_ENABLE(xcb,
 			  enable_xcb=no)
 
 if test x$enable_xcb = xyes; then
-	PKG_CHECK_MODULES(XCB, [x11-xcb])
+	PKG_CHECK_MODULES(XCB, [xcb])
 	AC_DEFINE([VK_USE_PLATFORM_XCB_KHR], [1], [Enable XCB WSI functions])
 fi
 
@@ -74,6 +74,7 @@ Makefile
 src/utils/Makefile
 src/null-driver/Makefile
 src/wsi/Makefile
+samples/Makefile
 ])
 
 AC_OUTPUT
