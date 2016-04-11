@@ -33,6 +33,7 @@
 #include <tpl.h>
 
 typedef struct vk_surface	vk_surface_t;
+typedef struct vk_swapchain	vk_swapchain_t;
 
 struct vk_surface {
 	union {
@@ -58,6 +59,14 @@ struct vk_surface {
 		tpl_display_t	   *display;
 		tpl_surface_t	   *surface;
 	} tpl;
+};
+
+struct vk_swapchain {
+	vk_surface_t		   *vk_surface;
+	VkAllocationCallbacks	allocator;
+	tbm_surface_h		   *buffers;
+	int						buffer_index;
+	int						buffer_count;
 };
 
 VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL
