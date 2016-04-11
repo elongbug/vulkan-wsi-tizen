@@ -27,7 +27,32 @@
 
 #include <config.h>
 #include <vulkan/vulkan.h>
+#include <stdbool.h>
+#include <vulkan/vk_icd.h>
 #include <utils.h>
+
+typedef struct vk_surface	vk_surface_t;
+
+struct vk_surface {
+	union {
+		VkIcdSurfaceBase	base;
+		VkIcdSurfaceDisplay	display;
+
+#ifdef VK_USE_PLATFORM_XLIB_KHR
+		VkIcdSurfaceXlib	xlib;
+#endif
+
+#ifdef VK_USE_PLATFORM_XCB_KHR
+		VkIcdSurfaceXcb		xcb;
+#endif
+
+#ifdef VK_USE_PLATFORM_WAYLAND_KHR
+		VkIcdSurfaceWayland	wayland;
+#endif
+	} platform;
+
+	VkAllocationCallbacks	allocator;
+};
 
 VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL
 vk_icdGetInstanceProcAddr(VkInstance instance, const char *name);

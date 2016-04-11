@@ -29,7 +29,11 @@ vk_DestroySurfaceKHR(VkInstance						 instance,
 					 VkSurfaceKHR					 surface,
 					 const VkAllocationCallbacks	*allocator)
 {
+	vk_surface_t *sfc = (vk_surface_t *)surface;
+
 	/* TODO: */
+
+	vk_free(&sfc->allocator, sfc);
 }
 
 #ifdef VK_USE_PLATFORM_XLIB_KHR
@@ -39,7 +43,22 @@ vk_CreateXlibSurfaceKHR(VkInstance							 instance,
 						const VkAllocationCallbacks			*allocator,
 						VkSurfaceKHR						*surface)
 {
+	vk_surface_t	*sfc;
+
+	allocator = vk_get_allocator(instance, allocator);
+
+	sfc = vk_alloc(allocator, sizeof(vk_surface_t), VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+	VK_CHECK(sfc, return VK_ERROR_OUT_OF_HOST_MEMORY, "vk_alloc() failed.\n");
+
+	sfc->allocator = *allocator;
+	sfc->platform.base.platform = VK_ICD_WSI_PLATFORM_XLIB;
+	sfc->platform.xlib.dpy = info->dpy;
+	sfc->platform.xlib.window = info->window;
+
+	*surface = (VkSurfaceKHR)sfc;
+
 	/* TODO: */
+
 	return VK_SUCCESS;
 }
 
@@ -61,7 +80,22 @@ vk_CreateXcbSurfaceKHR(VkInstance							 instance,
 					   const VkAllocationCallbacks			*allocator,
 					   VkSurfaceKHR							*surface)
 {
+	vk_surface_t	*sfc;
+
+	allocator = vk_get_allocator(instance, allocator);
+
+	sfc = vk_alloc(allocator, sizeof(vk_surface_t), VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+	VK_CHECK(sfc, return VK_ERROR_OUT_OF_HOST_MEMORY, "vk_alloc() failed.\n");
+
+	sfc->allocator = *allocator;
+	sfc->platform.base.platform = VK_ICD_WSI_PLATFORM_XCB;
+	sfc->platform.xcb.connection = info->connection;
+	sfc->platform.xcb.window = info->window;
+
+	*surface = (VkSurfaceKHR)sfc;
+
 	/* TODO: */
+
 	return VK_SUCCESS;
 }
 
@@ -83,7 +117,22 @@ vk_CreateWaylandSurfaceKHR(VkInstance							 instance,
 						   const VkAllocationCallbacks			*allocator,
 						   VkSurfaceKHR							*surface)
 {
+	vk_surface_t	*sfc;
+
+	allocator = vk_get_allocator(instance, allocator);
+
+	sfc = vk_alloc(allocator, sizeof(vk_surface_t), VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+	VK_CHECK(sfc, return VK_ERROR_OUT_OF_HOST_MEMORY, "vk_alloc() failed.\n");
+
+	sfc->allocator = *allocator;
+	sfc->platform.base.platform = VK_ICD_WSI_PLATFORM_WAYLAND;
+	sfc->platform.wayland.display = info->display;
+	sfc->platform.wayland.surface = info->surface;
+
+	*surface = (VkSurfaceKHR)sfc;
+
 	/* TODO: */
+
 	return VK_SUCCESS;
 }
 
@@ -96,6 +145,36 @@ vk_GetPhysicalDeviceWaylandPresentationSupportKHR(VkPhysicalDevice	 pdev,
 	return VK_TRUE;
 }
 #endif
+
+VKAPI_ATTR VkResult VKAPI_CALL
+vk_CreateDisplayPlaneSurfaceKHR(VkInstance							 instance,
+								const VkDisplaySurfaceCreateInfoKHR	*info,
+								const VkAllocationCallbacks			*allocator,
+								VkSurfaceKHR						*surface)
+{
+	vk_surface_t	*sfc;
+
+	allocator = vk_get_allocator(instance, allocator);
+
+	sfc = vk_alloc(allocator, sizeof(vk_surface_t), VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+	VK_CHECK(sfc, return VK_ERROR_OUT_OF_HOST_MEMORY, "vk_alloc() failed.\n");
+
+	sfc->allocator = *allocator;
+	sfc->platform.base.platform = VK_ICD_WSI_PLATFORM_DISPLAY;
+	sfc->platform.display.displayMode = info->displayMode;
+	sfc->platform.display.planeIndex = info->planeIndex;
+	sfc->platform.display.planeStackIndex = info->planeStackIndex;
+	sfc->platform.display.transform = info->transform;
+	sfc->platform.display.globalAlpha = info->globalAlpha;
+	sfc->platform.display.alphaMode = info->alphaMode;
+	sfc->platform.display.imageExtent = info->imageExtent;
+
+	*surface = (VkSurfaceKHR)sfc;
+
+	/* TODO: */
+
+	return VK_SUCCESS;
+}
 
 VKAPI_ATTR VkResult VKAPI_CALL
 vk_GetPhysicalDeviceSurfaceSupportKHR(VkPhysicalDevice	 pdev,
