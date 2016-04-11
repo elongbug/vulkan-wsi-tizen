@@ -10,9 +10,11 @@ vulkan_wsi_tizen_la_CFLAGS = $(AM_CFLAGS) -I$(top_srcdir)/include	\
 vulkan_wsi_tizen_la_LDFLAGS = -module -avoid-version
 vulkan_wsi_tizen_la_LIBADD = $(top_builddir)/src/utils/libutils.la
 
-vulkan_wsi_tizen_la_SOURCES = wsi.h		\
-							  wsi.c		\
-							  loader.c
+vulkan_wsi_tizen_la_SOURCES = wsi.h				\
+							  entry-points.c	\
+							  surface.c			\
+							  swapchain.c		\
+							  display.c
 
 manifestdir = /etc/vulkan/icd.d
 manifest_DATA = vulkan-wsi-tizen.json
