@@ -24,11 +24,14 @@
 
 #include "wsi.h"
 #include <string.h>
+#include <stdlib.h>
+#include <dlfcn.h>
 
 #define VK_ENTRY_POINT(name, type) { "vk"#name, vk_##name, VK_FUNC_TYPE_##type }
 
-typedef enum vk_func_type	vk_func_type_t;
-typedef struct vk_entry		vk_entry_t;
+typedef enum vk_func_type		vk_func_type_t;
+typedef struct vk_entry			vk_entry_t;
+typedef struct vk_icd_loader	vk_icd_loader_t;
 
 enum vk_func_type {
 	VK_FUNC_TYPE_GLOBAL,
@@ -40,6 +43,11 @@ struct vk_entry {
 	const char		*name;
 	void			*func;
 	vk_func_type_t	 type;
+};
+
+struct vk_icd_loader {
+	void						*lib;
+	PFN_vkGetInstanceProcAddr	 gpa;
 };
 
 static const vk_entry_t	entry_points[] = {
@@ -93,6 +101,32 @@ get_entry_point(const char *name)
 	return NULL;
 }
 
+static vk_icd_loader_t	icd;
+
+static void __attribute__((constructor))
+icd_init(void)
+{
+	const char *filename;
+
+	filename = getenv("VK_TIZEN_ICD");
+	VK_CHECK(filename, return, "No ICD library given.\n");
+
+	dlerror();
+
+	icd.lib = dlopen(filename, RTLD_LAZY | RTLD_LOCAL);
+	VK_CHECK(icd.lib, return, "dlopen() failed - %s\n", dlerror());
+
+	icd.gpa = dlsym(icd.lib, "vk_icdGetInstanceProcAddr");
+	VK_CHECK(icd.gpa, return, "vk_icdGetInstanceProcAddr() not present.\n");
+}
+
+static void __attribute__((destructor))
+icd_fini(void)
+{
+	if (icd.lib)
+		dlclose(icd.lib);
+}
+
 VK_EXPORT VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL
 vk_icdGetInstanceProcAddr(VkInstance instance, const char *name)
 {
@@ -101,5 +135,5 @@ vk_icdGetInstanceProcAddr(VkInstance instance, const char *name)
 	if (entry)
 		return entry->func;
 
-	return NULL;
+	return icd.gpa(instance, name);
 }
