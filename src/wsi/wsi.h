@@ -30,6 +30,7 @@
 #include <stdbool.h>
 #include <vulkan/vk_icd.h>
 #include <utils.h>
+#include <tpl.h>
 
 typedef struct vk_surface	vk_surface_t;
 
@@ -52,6 +53,11 @@ struct vk_surface {
 	} platform;
 
 	VkAllocationCallbacks	allocator;
+
+	struct {
+		tpl_display_t	   *display;
+		tpl_surface_t	   *surface;
+	} tpl;
 };
 
 VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL

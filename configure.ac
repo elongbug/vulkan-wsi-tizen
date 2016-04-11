@@ -68,6 +68,9 @@ fi
 
 AM_CONDITIONAL(ENABLE_XCB, test x$enable_xcb = xyes)
 
+PKG_CHECK_MODULES(TPL, [tpl-egl])
+PKG_CHECK_MODULES(TBM, [libtbm])
+
 # Output files
 AC_CONFIG_FILES([
 Makefile

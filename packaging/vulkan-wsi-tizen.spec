@@ -11,6 +11,10 @@ BuildRequires: autoconf > 2.64
 BuildRequires: automake >= 1.11
 BuildRequires: libtool >= 2.2
 
+BuildRequires: pkgconfig(tpl-egl)
+BuildRequires: pkgconfig(libtbm)
+
+%define _unpackaged_files_terminate_build 0
 %global TZ_SYS_RO_SHARE  %{?TZ_SYS_RO_SHARE:%TZ_SYS_RO_SHARE}%{!?TZ_SYS_RO_SHARE:/usr/share}
 
 %description

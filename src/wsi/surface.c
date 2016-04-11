@@ -24,6 +24,15 @@
 
 #include "wsi.h"
 
+static VkSurfaceFormatKHR	__surface_formats[] = {
+	{ VK_FORMAT_R8G8B8_SRGB, VK_COLORSPACE_SRGB_NONLINEAR_KHR },
+	{ VK_FORMAT_R8G8B8A8_SRGB, VK_COLORSPACE_SRGB_NONLINEAR_KHR }
+};
+
+static VkPresentModeKHR		__present_modes[] = {
+	VK_PRESENT_MODE_FIFO_KHR
+};
+
 VKAPI_ATTR void VKAPI_CALL
 vk_DestroySurfaceKHR(VkInstance						 instance,
 					 VkSurfaceKHR					 surface,
@@ -31,7 +40,10 @@ vk_DestroySurfaceKHR(VkInstance						 instance,
 {
 	vk_surface_t *sfc = (vk_surface_t *)surface;
 
-	/* TODO: */
+	if (sfc->tpl.surface)
+		tpl_object_unreference((tpl_object_t *)sfc->tpl.surface);
+	if (sfc->tpl.display)
+		tpl_object_unreference((tpl_object_t *)sfc->tpl.display);
 
 	vk_free(&sfc->allocator, sfc);
 }
@@ -124,16 +136,26 @@ vk_CreateWaylandSurfaceKHR(VkInstance							 instance,
 	sfc = vk_alloc(allocator, sizeof(vk_surface_t), VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
 	VK_CHECK(sfc, return VK_ERROR_OUT_OF_HOST_MEMORY, "vk_alloc() failed.\n");
 
+	memset(sfc, 0x00, sizeof(vk_surface_t));
+
 	sfc->allocator = *allocator;
 	sfc->platform.base.platform = VK_ICD_WSI_PLATFORM_WAYLAND;
 	sfc->platform.wayland.display = info->display;
 	sfc->platform.wayland.surface = info->surface;
 
+	sfc->tpl.display = tpl_display_create(TPL_BACKEND_WAYLAND_VULKAN_WSI, info->display);
+	VK_CHECK(sfc->tpl.display, goto error, "tpl_display_create() failed.\n");
+
+	sfc->tpl.surface = tpl_surface_create(sfc->tpl.display, info->surface, TPL_SURFACE_TYPE_WINDOW,
+										  TBM_FORMAT_ARGB8888);
+	VK_CHECK(sfc->tpl.surface, goto error, "tpl_surface_create() failed.\n");
+
 	*surface = (VkSurfaceKHR)sfc;
-
-	/* TODO: */
-
 	return VK_SUCCESS;
+
+error:
+	vk_DestroySurfaceKHR(sfc);
+	return VK_ERROR_INITIALIZATION_FAILED;
 }
 
 VKAPI_ATTR VkBool32 VKAPI_CALL
@@ -182,8 +204,6 @@ vk_GetPhysicalDeviceSurfaceSupportKHR(VkPhysicalDevice	 pdev,
 									  VkSurfaceKHR		 surface,
 									  VkBool32			*supported)
 {
-	/* TODO: */
-
 	*supported = VK_TRUE;
 	return VK_SUCCESS;
 }
@@ -193,7 +213,31 @@ vk_GetPhysicalDeviceSurfaceCapabilitiesKHR(VkPhysicalDevice			 pdev,
 										   VkSurfaceKHR				 surface,
 										   VkSurfaceCapabilitiesKHR	*caps)
 {
-	/* TODO: */
+	int min, max;
+	tpl_result_t res;
+	vk_surface_t *sfc = (vk_surface_t *)surface;
+
+	res = tpl_surface_query_supported_buffer_count(sfc->tpl.surface, &min, &max);
+	VK_CHECK(res == TPL_ERROR_NONE, return VK_ERROR_DEVICE_LOST,
+			 "tpl_surface_query_supported_buffer_count() failed.\n");
+
+	caps->minImageCount = min;
+	caps->maxImageCount = max;
+	caps->currentExtent.width = -1;
+	caps->currentExtent.height = -1;
+	caps->minImageExtent.width = 1;
+	caps->minImageExtent.height = 1;
+	caps->maxImageExtent.width = INT16_MAX;
+	caps->maxImageExtent.height = INT16_MAX;
+	caps->maxImageArrayLayers = 1;
+	caps->supportedTransforms = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
+	caps->currentTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
+	caps->supportedCompositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR |
+		VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR;
+	caps->supportedUsageFlags = VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
+		VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+		VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
 	return VK_SUCCESS;
 }
 
@@ -204,14 +248,22 @@ vk_GetPhysicalDeviceSurfaceFormatsKHR(VkPhysicalDevice		 pdev,
 									  VkSurfaceFormatKHR	*formats)
 {
 	/* TODO: */
+	uint32_t format_array_size = sizeof(__surface_formats)/sizeof(VkSurfaceFormatKHR);
 
-	if (formats == NULL) {
-		*format_count = 1;
-	} else {
-		if (*format_count != 0) {
-			formats[0].format = VK_FORMAT_B8G8R8A8_UINT;
-			formats[0].colorSpace = VK_COLORSPACE_SRGB_NONLINEAR_KHR;
+	if (formats) {
+		uint32_t i;
+		for (i = 0; i < *format_count && i < format_array_size; i++) {
+			formats[i].format = __surface_formats[i].format;
+			formats[i].colorSpace = __surface_formats[i].colorSpace;
 		}
+
+		*format_count = i;
+
+		if (i < format_array_size)
+			return VK_INCOMPLETE;
+
+	} else {
+		*format_count = format_array_size;
 	}
 
 	return VK_SUCCESS;
@@ -224,12 +276,20 @@ vk_GetPhysicalDeviceSurfacePresentModesKHR(VkPhysicalDevice	 pdev,
 										   VkPresentModeKHR	*modes)
 {
 	/* TODO: */
+	uint32_t present_array_size = sizeof(__present_modes)/sizeof(VkPresentModeKHR);
 
-	if (modes == NULL) {
-		*mode_count = 1;
+	if (modes) {
+		uint32_t i;
+		for (i = 0; i < *mode_count && i < present_array_size; i++)
+			modes[i] = __present_modes[i];
+
+		*mode_count = i;
+
+		if (i < present_array_size)
+			return VK_INCOMPLETE;
+
 	} else {
-		if (*mode_count != 0)
-			modes[0] = VK_PRESENT_MODE_FIFO_KHR;
+		*mode_count = present_array_size;
 	}
 
 	return VK_SUCCESS;
