@@ -14,7 +14,8 @@ vulkan_wsi_tizen_la_SOURCES = wsi.h				\
 							  entry-points.c	\
 							  surface.c			\
 							  swapchain.c		\
-							  display.c
+							  display.c			\
+							  allocator.c
 
 manifestdir = /etc/vulkan/icd.d
 manifest_DATA = vulkan-wsi-tizen.json

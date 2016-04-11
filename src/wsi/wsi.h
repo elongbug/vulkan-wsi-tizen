@@ -32,6 +32,19 @@
 VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL
 vk_icdGetInstanceProcAddr(VkInstance instance, const char *name);
 
+const VkAllocationCallbacks *
+vk_get_allocator(void *parent, const VkAllocationCallbacks *allocator);
+
+void *
+vk_alloc(const VkAllocationCallbacks *allocator, size_t size, VkSystemAllocationScope scope);
+
+void *
+vk_realloc(const VkAllocationCallbacks *allocator, void *mem, size_t size,
+		   VkSystemAllocationScope scope);
+
+void
+vk_free(const VkAllocationCallbacks *allocator, void *mem);
+
 /* Entry point proto types. */
 VKAPI_ATTR void VKAPI_CALL
 vk_DestroySurfaceKHR(VkInstance instance, VkSurfaceKHR surface,
