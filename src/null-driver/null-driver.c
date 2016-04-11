@@ -1440,7 +1440,7 @@ get_physical_device_properties(VkPhysicalDevice pdev,
 {
 	NULLDRV_LOG_FUNC;
 
-	props->apiVersion = VK_API_VERSION;
+	props->apiVersion = VK_API_VERSION_1_0;
 	props->driverVersion = 0;
 	props->vendorID = 0;
 	props->deviceID = 0;
