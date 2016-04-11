@@ -176,4 +176,10 @@ vk_GetPhysicalDeviceWaylandPresentationSupportKHR(VkPhysicalDevice pdev,
 												  struct wl_display *display);
 #endif
 
+VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL
+vk_GetInstanceProcAddr(VkInstance instance, const char *name);
+
+VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL
+vk_GetDeviceProcAddr(VkDevice device, const char *name);
+
 #endif /* WSI_H */

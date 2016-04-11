@@ -84,6 +84,9 @@ static const vk_entry_t	entry_points[] = {
 	VK_ENTRY_POINT(CreateWaylandSurfaceKHR,INSTANCE),
 	VK_ENTRY_POINT(GetPhysicalDeviceWaylandPresentationSupportKHR,INSTANCE),
 #endif
+
+	VK_ENTRY_POINT(GetInstanceProcAddr, INSTANCE),
+	VK_ENTRY_POINT(GetDeviceProcAddr, DEVICE),
 };
 
 static const vk_entry_t *
@@ -125,6 +128,60 @@ icd_fini(void)
 {
 	if (icd.lib)
 		dlclose(icd.lib);
+}
+
+VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL
+vk_GetInstanceProcAddr(VkInstance instance, const char *name)
+{
+	const vk_entry_t			*entry = get_entry_point(name);
+	PFN_vkGetInstanceProcAddr	 gipa;
+
+	/* According to vulkan specification 1.0, when instance is NULL, name must be one of global
+	 * functions. When instance is not NULL, then name must be not one of global functions. */
+	if (entry) {
+		if (instance == NULL && entry->type == VK_FUNC_TYPE_GLOBAL)
+			return entry->func;
+
+		if (instance != NULL && entry->type != VK_FUNC_TYPE_GLOBAL)
+			return entry->func;
+
+		if (entry->func == vk_GetInstanceProcAddr)
+			return entry->func;
+
+		if (entry->func == vk_GetDeviceProcAddr)
+			return entry->func;
+
+		return NULL;
+	}
+
+	/* TODO: Avoid getting GIPA on the fly. */
+	gipa = (PFN_vkGetInstanceProcAddr)icd.gpa(instance, "vkGetInstanceProcAddr");
+
+	return gipa(instance, name);
+}
+
+VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL
+vk_GetDeviceProcAddr(VkDevice device, const char *name)
+{
+	const vk_entry_t		*entry = get_entry_point(name);
+	PFN_vkGetDeviceProcAddr	 gdpa;
+
+	if (device == NULL)
+		return NULL;
+
+	if (entry) {
+		if ( entry->type == VK_FUNC_TYPE_DEVICE)
+			return entry->func;
+
+		return NULL;
+	}
+
+	/* TODO: We are trying to get the most specific device functions here. */
+	gdpa = (PFN_vkGetDeviceProcAddr)icd.gpa(NULL, "vkGetDeviceProcAddr");
+	gdpa = (PFN_vkGetDeviceProcAddr)gdpa(device, "vkGetDeviceProcAddr");
+
+	return gdpa(device, name);
+
 }
 
 VK_EXPORT VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL
