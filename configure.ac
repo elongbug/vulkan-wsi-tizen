@@ -17,6 +17,7 @@ AM_INIT_AUTOMAKE([1.11 foreign no-dist-gzip dist-xz])
 AM_SILENT_RULES([yes])
 
 AC_PROG_CC
+PKG_PROG_PKG_CONFIG
 
 LT_PREREQ([2.2])
 LT_INIT([disable-static])
