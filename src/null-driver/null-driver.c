@@ -1459,8 +1459,7 @@ get_physical_device_features(VkPhysicalDevice dev,
 {
 	NULLDRV_LOG_FUNC;
 
-	/* TODO: fill out features */
-	memset(features, 0, sizeof(*features));
+	memset(features, 0xff, sizeof(*features));
 }
 
 static VKAPI_ATTR void VKAPI_CALL
