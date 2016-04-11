@@ -183,6 +183,8 @@ vk_GetPhysicalDeviceSurfaceSupportKHR(VkPhysicalDevice	 pdev,
 									  VkBool32			*supported)
 {
 	/* TODO: */
+
+	*supported = VK_TRUE;
 	return VK_SUCCESS;
 }
 
@@ -202,6 +204,16 @@ vk_GetPhysicalDeviceSurfaceFormatsKHR(VkPhysicalDevice		 pdev,
 									  VkSurfaceFormatKHR	*formats)
 {
 	/* TODO: */
+
+	if (formats == NULL) {
+		*format_count = 1;
+	} else {
+		if (*format_count != 0) {
+			formats[0].format = VK_FORMAT_B8G8R8A8_UINT;
+			formats[0].colorSpace = VK_COLORSPACE_SRGB_NONLINEAR_KHR;
+		}
+	}
+
 	return VK_SUCCESS;
 }
 
@@ -212,5 +224,13 @@ vk_GetPhysicalDeviceSurfacePresentModesKHR(VkPhysicalDevice	 pdev,
 										   VkPresentModeKHR	*modes)
 {
 	/* TODO: */
+
+	if (modes == NULL) {
+		*mode_count = 1;
+	} else {
+		if (*mode_count != 0)
+			modes[0] = VK_PRESENT_MODE_FIFO_KHR;
+	}
+
 	return VK_SUCCESS;
 }
