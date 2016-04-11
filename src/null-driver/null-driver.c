@@ -2462,7 +2462,7 @@ get_instance_proc_addr(VkInstance instance, const char *name)
 {
 	unsigned int i;
 
-	if (name == NULL)
+	if (instance == NULL)
 	{
 		for (i = 0; i < ARRAY_LENGTH(global_funcs); ++i) {
 			if (strcmp(name, global_funcs[i].name) == 0)
@@ -2475,16 +2475,35 @@ get_instance_proc_addr(VkInstance instance, const char *name)
 			if (strcmp(name, instance_funcs[i].name) == 0)
 				return instance_funcs[i].func;
 		}
+
+		for (i = 0; i < ARRAY_LENGTH(device_funcs); ++i) {
+			if (strcmp(name, device_funcs[i].name) == 0)
+				return device_funcs[i].func;
+		}
 	}
 
 	return NULL;
 }
 
-VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL
+VK_EXPORT VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL
 vk_icdGetInstanceProcAddr(VkInstance instance, const char *name)
 {
-	if (strcmp(name, "vkGetDeviceProcAddr") == 0)
-		return (PFN_vkVoidFunction)get_device_proc_addr;
+	unsigned int i;
 
-	return get_instance_proc_addr(instance, name);
+	for (i = 0; i < ARRAY_LENGTH(global_funcs); ++i) {
+		if (strcmp(name, global_funcs[i].name) == 0)
+			return global_funcs[i].func;
+	}
+
+	for (i = 0; i < ARRAY_LENGTH(instance_funcs); ++i) {
+		if (strcmp(name, instance_funcs[i].name) == 0)
+			return instance_funcs[i].func;
+	}
+
+	for (i = 0; i < ARRAY_LENGTH(device_funcs); ++i) {
+		if (strcmp(name, device_funcs[i].name) == 0)
+			return device_funcs[i].func;
+	}
+
+	return NULL;
 }
