@@ -23,15 +23,7 @@
  */
 
 #include "wsi.h"
-
-static VkSurfaceFormatKHR	__surface_formats[] = {
-	{ VK_FORMAT_R8G8B8_SRGB, VK_COLORSPACE_SRGB_NONLINEAR_KHR },
-	{ VK_FORMAT_R8G8B8A8_SRGB, VK_COLORSPACE_SRGB_NONLINEAR_KHR }
-};
-
-static VkPresentModeKHR		__present_modes[] = {
-	VK_PRESENT_MODE_FIFO_KHR
-};
+#include <string.h>
 
 VKAPI_ATTR void VKAPI_CALL
 vk_DestroySurfaceKHR(VkInstance						 instance,
@@ -154,7 +146,7 @@ vk_CreateWaylandSurfaceKHR(VkInstance							 instance,
 	return VK_SUCCESS;
 
 error:
-	vk_DestroySurfaceKHR(sfc);
+	vk_DestroySurfaceKHR(instance, (VkSurfaceKHR)sfc, allocator);
 	return VK_ERROR_INITIALIZATION_FAILED;
 }
 
@@ -241,6 +233,11 @@ vk_GetPhysicalDeviceSurfaceCapabilitiesKHR(VkPhysicalDevice			 pdev,
 	return VK_SUCCESS;
 }
 
+static VkSurfaceFormatKHR surface_formats[] = {
+	{ VK_FORMAT_R8G8B8_SRGB,	VK_COLORSPACE_SRGB_NONLINEAR_KHR },
+	{ VK_FORMAT_R8G8B8A8_SRGB,	VK_COLORSPACE_SRGB_NONLINEAR_KHR }
+};
+
 VKAPI_ATTR VkResult VKAPI_CALL
 vk_GetPhysicalDeviceSurfaceFormatsKHR(VkPhysicalDevice		 pdev,
 									  VkSurfaceKHR			 surface,
@@ -248,26 +245,23 @@ vk_GetPhysicalDeviceSurfaceFormatsKHR(VkPhysicalDevice		 pdev,
 									  VkSurfaceFormatKHR	*formats)
 {
 	/* TODO: */
-	uint32_t format_array_size = sizeof(__surface_formats)/sizeof(VkSurfaceFormatKHR);
 
 	if (formats) {
-		uint32_t i;
-		for (i = 0; i < *format_count && i < format_array_size; i++) {
-			formats[i].format = __surface_formats[i].format;
-			formats[i].colorSpace = __surface_formats[i].colorSpace;
-		}
+		*format_count = MIN(*format_count, ARRAY_LENGTH(surface_formats));
+		memcpy(formats, &surface_formats[0], sizeof(VkSurfaceFormatKHR) * (*format_count));
 
-		*format_count = i;
-
-		if (i < format_array_size)
+		if (*format_count < ARRAY_LENGTH(surface_formats))
 			return VK_INCOMPLETE;
-
 	} else {
-		*format_count = format_array_size;
+		*format_count = ARRAY_LENGTH(surface_formats);
 	}
 
 	return VK_SUCCESS;
 }
+
+static VkPresentModeKHR present_modes[] = {
+	VK_PRESENT_MODE_FIFO_KHR
+};
 
 VKAPI_ATTR VkResult VKAPI_CALL
 vk_GetPhysicalDeviceSurfacePresentModesKHR(VkPhysicalDevice	 pdev,
@@ -276,20 +270,15 @@ vk_GetPhysicalDeviceSurfacePresentModesKHR(VkPhysicalDevice	 pdev,
 										   VkPresentModeKHR	*modes)
 {
 	/* TODO: */
-	uint32_t present_array_size = sizeof(__present_modes)/sizeof(VkPresentModeKHR);
 
 	if (modes) {
-		uint32_t i;
-		for (i = 0; i < *mode_count && i < present_array_size; i++)
-			modes[i] = __present_modes[i];
+		*mode_count = MIN(*mode_count, ARRAY_LENGTH(present_modes));
+		memcpy(modes, &present_modes[0], sizeof(VkPresentModeKHR) * (*mode_count));
 
-		*mode_count = i;
-
-		if (i < present_array_size)
+		if (*mode_count < ARRAY_LENGTH(present_modes))
 			return VK_INCOMPLETE;
-
 	} else {
-		*mode_count = present_array_size;
+		*mode_count = ARRAY_LENGTH(present_modes);
 	}
 
 	return VK_SUCCESS;
