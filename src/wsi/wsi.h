@@ -197,4 +197,12 @@ vk_GetInstanceProcAddr(VkInstance instance, const char *name);
 VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL
 vk_GetDeviceProcAddr(VkDevice device, const char *name);
 
+VKAPI_ATTR VkResult VKAPI_CALL
+vk_EnumerateInstanceExtensionProperties(const char *layer_name, uint32_t *count,
+										VkExtensionProperties *extensions);
+
+VKAPI_ATTR VkResult VKAPI_CALL
+vk_EnumerateDeviceExtensionProperties(VkPhysicalDevice pdev, const char *layer_name,
+									  uint32_t *count, VkExtensionProperties *extensions);
+
 #endif /* WSI_H */
