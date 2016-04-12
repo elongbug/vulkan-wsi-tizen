@@ -13,6 +13,7 @@ BuildRequires: libtool >= 2.2
 
 BuildRequires: pkgconfig(tpl-egl)
 BuildRequires: pkgconfig(libtbm)
+BuildRequires: Vulkan-LoaderAndValidationLayers
 
 %define _unpackaged_files_terminate_build 0
 %global TZ_SYS_RO_SHARE  %{?TZ_SYS_RO_SHARE:%TZ_SYS_RO_SHARE}%{!?TZ_SYS_RO_SHARE:/usr/share}

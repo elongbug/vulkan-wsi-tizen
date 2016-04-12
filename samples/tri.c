@@ -181,10 +181,14 @@ struct demo {
     char name[APP_NAME_STR_LEN]; // Name to put on the window/icon
     HWND window;                 // hWnd - window handle
 #else                            // _WIN32
-    xcb_connection_t *connection;
-    xcb_screen_t *screen;
-    xcb_window_t window;
-    xcb_intern_atom_reply_t *atom_wm_delete_window;
+	struct wl_display *display;
+	struct wl_registry *registry;
+	struct wl_compositor *compositor;
+	struct wl_seat *seat;
+	struct wl_surface *wl_surface;
+	struct wl_shm *shm;
+	struct wl_shell *shell;
+	struct wl_shell_surface *shell_surface;
 #endif                           // _WIN32
     VkSurfaceKHR surface;
     bool prepared;
@@ -1623,54 +1627,9 @@ static void demo_create_window(struct demo *demo) {
 }
 #else  // _WIN32
 
-static void demo_handle_event(struct demo *demo,
-                              const xcb_generic_event_t *event) {
-    switch (event->response_type & 0x7f) {
-    case XCB_EXPOSE:
-        demo_draw(demo);
-        break;
-    case XCB_CLIENT_MESSAGE:
-        if ((*(xcb_client_message_event_t *)event).data.data32[0] ==
-            (*demo->atom_wm_delete_window).atom) {
-            demo->quit = true;
-        }
-        break;
-    case XCB_KEY_RELEASE: {
-        const xcb_key_release_event_t *key =
-            (const xcb_key_release_event_t *)event;
-
-        if (key->detail == 0x9)
-            demo->quit = true;
-    } break;
-    case XCB_DESTROY_NOTIFY:
-        demo->quit = true;
-        break;
-    case XCB_CONFIGURE_NOTIFY: {
-        const xcb_configure_notify_event_t *cfg =
-            (const xcb_configure_notify_event_t *)event;
-        if ((demo->width != cfg->width) || (demo->height != cfg->height)) {
-            demo->width = cfg->width;
-            demo->height = cfg->height;
-            demo_resize(demo);
-        }
-    } break;
-    default:
-        break;
-    }
-}
-
 static void demo_run(struct demo *demo) {
-    xcb_flush(demo->connection);
 
     while (!demo->quit) {
-        xcb_generic_event_t *event;
-
-        event = xcb_poll_for_event(demo->connection);
-        if (event) {
-            demo_handle_event(demo, event);
-            free(event);
-        }
-
         demo_draw(demo);
 
         if (demo->depthStencil > 0.99f)
@@ -1688,38 +1647,40 @@ static void demo_run(struct demo *demo) {
     }
 }
 
+static void
+handle_ping(void *data, struct wl_shell_surface *shell_surface,
+            uint32_t serial) {
+	wl_shell_surface_pong(shell_surface, serial);
+}
+
+static void
+handle_configure(void *data, struct wl_shell_surface *shell_surface,
+                 uint32_t edges, int32_t width, int32_t height) {
+}
+
+static void
+handle_popup_done(void *data, struct wl_shell_surface *shell_surface) {
+}
+
+static const struct wl_shell_surface_listener shell_surface_listener = {
+	handle_ping,
+	handle_configure,
+	handle_popup_done
+};
+
 static void demo_create_window(struct demo *demo) {
-    uint32_t value_mask, value_list[32];
+	demo->wl_surface = wl_compositor_create_surface(demo->compositor);
 
-    demo->window = xcb_generate_id(demo->connection);
+	demo->shell_surface = wl_shell_get_shell_surface(demo->shell, demo->wl_surface);
 
-    value_mask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
-    value_list[0] = demo->screen->black_pixel;
-    value_list[1] = XCB_EVENT_MASK_KEY_RELEASE | XCB_EVENT_MASK_EXPOSURE |
-                    XCB_EVENT_MASK_STRUCTURE_NOTIFY;
+	if (demo->shell_surface) {
+		wl_shell_surface_add_listener(demo->shell_surface,
+									  &shell_surface_listener, demo);
+		wl_shell_surface_set_toplevel(demo->shell_surface);
+	}
 
-    xcb_create_window(demo->connection, XCB_COPY_FROM_PARENT, demo->window,
-                      demo->screen->root, 0, 0, demo->width, demo->height, 0,
-                      XCB_WINDOW_CLASS_INPUT_OUTPUT, demo->screen->root_visual,
-                      value_mask, value_list);
-
-    /* Magic code that will send notification when window is destroyed */
-    xcb_intern_atom_cookie_t cookie =
-        xcb_intern_atom(demo->connection, 1, 12, "WM_PROTOCOLS");
-    xcb_intern_atom_reply_t *reply =
-        xcb_intern_atom_reply(demo->connection, cookie, 0);
-
-    xcb_intern_atom_cookie_t cookie2 =
-        xcb_intern_atom(demo->connection, 0, 16, "WM_DELETE_WINDOW");
-    demo->atom_wm_delete_window =
-        xcb_intern_atom_reply(demo->connection, cookie2, 0);
-
-    xcb_change_property(demo->connection, XCB_PROP_MODE_REPLACE, demo->window,
-                        (*reply).atom, 4, 32, 1,
-                        &(*demo->atom_wm_delete_window).atom);
-    free(reply);
-
-    xcb_map_window(demo->connection, demo->window);
+	wl_surface_set_user_data(demo->wl_surface, demo);
+	wl_shell_surface_set_title(demo->shell_surface, APP_SHORT_NAME);
 }
 #endif // _WIN32
 
@@ -1850,12 +1811,12 @@ static void demo_init_vk(struct demo *demo) {
                     VK_KHR_WIN32_SURFACE_EXTENSION_NAME;
             }
 #else  // _WIN32
-            if (!strcmp(VK_KHR_XCB_SURFACE_EXTENSION_NAME,
-                        instance_extensions[i].extensionName)) {
-                platformSurfaceExtFound = 1;
-                demo->extension_names[demo->enabled_extension_count++] =
-                    VK_KHR_XCB_SURFACE_EXTENSION_NAME;
-            }
+			if (!strcmp(VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME,
+			            instance_extensions[i].extensionName)) {
+				platformSurfaceExtFound = 1;
+				demo->extension_names[demo->enabled_extension_count++] =
+				        VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME;
+			}
 #endif // _WIN32
             if (!strcmp(VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
                         instance_extensions[i].extensionName)) {
@@ -1890,7 +1851,7 @@ static void demo_init_vk(struct demo *demo) {
                  "vkCreateInstance Failure");
 #else  // _WIN32
         ERR_EXIT("vkEnumerateInstanceExtensionProperties failed to find "
-                 "the " VK_KHR_XCB_SURFACE_EXTENSION_NAME
+                 "the " VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME
                  " extension.\n\nDo you have a compatible "
                  "Vulkan installable client driver (ICD) installed?\nPlease "
                  "look at the Getting Started guide for additional "
@@ -2169,14 +2130,14 @@ static void demo_init_vk_swapchain(struct demo *demo) {
         vkCreateWin32SurfaceKHR(demo->inst, &createInfo, NULL, &demo->surface);
 
 #else  // _WIN32
-    VkXcbSurfaceCreateInfoKHR createInfo;
-    createInfo.sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR;
-    createInfo.pNext = NULL;
-    createInfo.flags = 0;
-    createInfo.connection = demo->connection;
-    createInfo.window = demo->window;
+	VkWaylandSurfaceCreateInfoKHR createInfo;
+	createInfo.sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR;
+	createInfo.pNext = NULL;
+	createInfo.flags = 0;
+	createInfo.display = demo->display;
+	createInfo.surface = demo->wl_surface;
 
-    err = vkCreateXcbSurfaceKHR(demo->inst, &createInfo, NULL, &demo->surface);
+	err = vkCreateWaylandSurfaceKHR(demo->inst, &createInfo, NULL, &demo->surface);
 #endif // _WIN32
 
     // Iterate over each queue to learn whether it supports presenting:
@@ -2269,26 +2230,51 @@ static void demo_init_vk_swapchain(struct demo *demo) {
     vkGetPhysicalDeviceMemoryProperties(demo->gpu, &demo->memory_properties);
 }
 
+static void
+registry_handle_global(void *data, struct wl_registry *registry,
+                       uint32_t name, const char *interface, uint32_t version) {
+	struct demo *d = data;
+
+	printf("%s, interface: %s\n", __func__, interface);
+
+	if (strcmp(interface, "wl_compositor") == 0) {
+		d->compositor =
+		        wl_registry_bind(registry, name,
+		                         &wl_compositor_interface, 1);
+	} else if (strcmp(interface, "wl_shm") == 0) {
+		d->shm = wl_registry_bind(registry, name,
+		                          &wl_shm_interface, 1);
+	}  else if (strcmp(interface, "wl_shell") == 0) {
+		d->shell =
+		        wl_registry_bind(registry, name,
+		                         &wl_shell_interface, 1);
+	}
+}
+
+static void
+registry_handle_global_remove(void *data, struct wl_registry *registry,
+                              uint32_t name) {
+}
+
+static const struct wl_registry_listener registry_listener = {
+	registry_handle_global,
+	registry_handle_global_remove
+};
+
 static void demo_init_connection(struct demo *demo) {
 #ifndef _WIN32
-    const xcb_setup_t *setup;
-    xcb_screen_iterator_t iter;
-    int scr;
+	demo->display = wl_display_connect(NULL);
 
-    demo->connection = xcb_connect(NULL, &scr);
-    if (demo->connection == NULL) {
-        printf("Cannot find a compatible Vulkan installable client driver "
-               "(ICD).\nExiting ...\n");
-        fflush(stdout);
-        exit(1);
-    }
+	if (demo->display == NULL) {
+		printf("Cannot find a compatible Vulkan installable client driver "
+		       "(ICD).\nExiting ...\n");
+		fflush(stdout);
+		exit(1);
+	}
 
-    setup = xcb_get_setup(demo->connection);
-    iter = xcb_setup_roots_iterator(setup);
-    while (scr-- > 0)
-        xcb_screen_next(&iter);
-
-    demo->screen = iter.data;
+	demo->registry = wl_display_get_registry(demo->display);
+	wl_registry_add_listener(demo->registry, &registry_listener, demo);
+	wl_display_dispatch(demo->display);
 #endif // _WIN32
 }
 
@@ -2386,12 +2372,6 @@ static void demo_cleanup(struct demo *demo) {
     vkDestroyInstance(demo->inst, NULL);
 
     free(demo->queue_props);
-
-#ifndef _WIN32
-    xcb_destroy_window(demo->connection, demo->window);
-    xcb_disconnect(demo->connection);
-    free(demo->atom_wm_delete_window);
-#endif // _WIN32
 }
 
 static void demo_resize(struct demo *demo) {
