@@ -5,10 +5,12 @@ AM_CFLAGS = $(GCC_CFLAGS)
 
 vulkan_wsi_tizen_la_CFLAGS = $(AM_CFLAGS) -I$(top_srcdir)/include	\
 							 -I$(top_srcdir)/src/utils				\
-							 -fvisibility=hidden
+							 -fvisibility=hidden					\
+							 $(TPL_CFLAGS)
 
 vulkan_wsi_tizen_la_LDFLAGS = -module -avoid-version
-vulkan_wsi_tizen_la_LIBADD = $(top_builddir)/src/utils/libutils.la
+vulkan_wsi_tizen_la_LIBADD = $(top_builddir)/src/utils/libutils.la	\
+							 $(TPL_LIBS)
 
 vulkan_wsi_tizen_la_SOURCES = wsi.h				\
 							  entry-points.c	\
