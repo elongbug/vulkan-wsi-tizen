@@ -32,7 +32,7 @@ vk_CreateSwapchainKHR(VkDevice							 device,
 					  VkSwapchainKHR					*swapchain)
 {
 	vk_swapchain_t *chain;
-	vk_surface_t *sfc;
+	vk_surface_t *sfc = (vk_surface_t *)info->surface;
 	tbm_format format;
 	tpl_result_t res;
 
@@ -54,13 +54,12 @@ vk_CreateSwapchainKHR(VkDevice							 device,
 
 	memset(chain, 0x00, sizeof(vk_swapchain_t));
 
-	sfc = (vk_surface_t *)info->surface;
 	res = tpl_surface_create_swapchain(sfc->tpl.surface, format, info->imageExtent.width,
 									   info->imageExtent.height, info->minImageCount);
 	VK_CHECK(res == TPL_ERROR_NONE, goto error, "tpl_surface_create_swapchain() failed.\n");
 
 	chain->allocator = *allocator;
-	chain->vk_surface = sfc;
+	chain->surface = sfc;
 
 	*swapchain = (VkSwapchainKHR)chain;
 	return VK_SUCCESS;
@@ -88,7 +87,7 @@ vk_DestroySwapchainKHR(VkDevice						 device,
 {
 	vk_swapchain_t *chain = (vk_swapchain_t *)swapchain;
 
-	tpl_surface_destroy_swapchain(chain->vk_surface->tpl.surface);
+	tpl_surface_destroy_swapchain(chain->surface->tpl.surface);
 	free(chain->buffers);
 
 	vk_free(&chain->allocator, chain);
@@ -103,24 +102,28 @@ vk_GetSwapchainImagesKHR(VkDevice		 device,
 	vk_swapchain_t *chain = (vk_swapchain_t *)swapchain;
 
 	if (chain->buffer_count == 0) {
-		tpl_result_t res =tpl_surface_get_swapchain_buffers(chain->vk_surface->tpl.surface,
-															&chain->buffers, &chain->buffer_count);
+		tpl_result_t	res;
+		int				buffer_count;
+
+		res = tpl_surface_get_swapchain_buffers(chain->surface->tpl.surface,
+												&chain->buffers, &buffer_count);
 		VK_CHECK(res == TPL_ERROR_NONE, return VK_ERROR_SURFACE_LOST_KHR,
 				 "tpl_surface_get_swapchain_buffers() failed\n.");
+		chain->buffer_count = buffer_count;
 	}
 
 	if (images) {
-		int32_t i;
-		for (i = 0; i < (int32_t)*image_count && i < chain->buffer_count; i++) {
+		uint32_t i;
+
+		*image_count = MIN(*image_count, chain->buffer_count);
+
+		for (i = 0; i < *image_count; i++) {
 			/* TODO: tbm_surface_h to VkImage */
 			images[i] = (VkImage)chain->buffers[i];
 		}
 
-		*image_count = i;
-
-		if (i < chain->buffer_count)
+		if (*image_count < chain->buffer_count)
 			return VK_INCOMPLETE;
-
 	} else {
 		*image_count = chain->buffer_count;
 	}
@@ -138,28 +141,21 @@ vk_AcquireNextImageKHR(VkDevice			 device,
 {
 	/* TODO: apply timeout, semaphore, fence */
 
-	int i;
-	tbm_surface_h next;
-	vk_swapchain_t *chain = (vk_swapchain_t *)swapchain;
+	uint32_t		 i;
+	tbm_surface_h	 next;
+	vk_swapchain_t	*chain = (vk_swapchain_t *)swapchain;
 
-	next = tpl_surface_dequeue_buffer(chain->vk_surface->tpl.surface);
-	VK_CHECK(next, return VK_ERROR_SURFACE_LOST_KHR,
-			 "tpl_surface_get_swapchain_buffers() failed\n.");
+	next = tpl_surface_dequeue_buffer(chain->surface->tpl.surface);
+	VK_CHECK(next, return VK_ERROR_SURFACE_LOST_KHR, "tpl_surface_dequeue_buffers() failed\n.");
 
 	for (i = 0; i < chain->buffer_count; i++) {
-		if (next == chain->buffers[chain->buffer_index])
-			break;
-
-		if (++chain->buffer_index == chain->buffer_count)
-			chain->buffer_index = 0;
+		if (next == chain->buffers[i]) {
+			*image_index = i;
+			return VK_SUCCESS;
+		}
 	}
 
-	VK_CHECK(i == chain->buffer_count, return VK_ERROR_SURFACE_LOST_KHR,
-			 "tpl_surface_get_swapchain_buffers() return new buffer[%p]\n.", next);
-
-	*image_index = chain->buffer_index;
-
-	return VK_SUCCESS;
+	return VK_ERROR_SURFACE_LOST_KHR;
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL
@@ -167,23 +163,17 @@ vk_QueuePresentKHR(VkQueue					 queue,
 				   const VkPresentInfoKHR	*info)
 {
 	uint32_t i;
-	uint32_t buf_index;
-	vk_swapchain_t *chain;
-	tpl_result_t res;
 
 	for (i = 0; i < info->swapchainCount; i++) {
-		chain = (vk_swapchain_t *)info->pSwapchains[i];
-		buf_index = info->pImageIndices[i];
+		tpl_result_t	 res;
+		vk_swapchain_t	*chain = (vk_swapchain_t *)info->pSwapchains[i];
 
-		res = tpl_surface_enqueue_buffer(chain->vk_surface->tpl.surface,
-										 chain->buffers[buf_index]);
+		res = tpl_surface_enqueue_buffer(chain->surface->tpl.surface,
+										 chain->buffers[info->pImageIndices[i]]);
 
-		if (info->pResults != NULL) {
-			if (res != TPL_ERROR_NONE)
-				info->pResults[i] = VK_ERROR_DEVICE_LOST;
-			else
-				info->pResults[i] = VK_SUCCESS;
-		}
+		if (info->pResults != NULL)
+			info->pResults[i] = res == TPL_ERROR_NONE ? VK_SUCCESS : VK_ERROR_DEVICE_LOST;
 	}
+
 	return VK_SUCCESS;
 }

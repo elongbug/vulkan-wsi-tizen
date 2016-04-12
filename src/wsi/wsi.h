@@ -62,11 +62,11 @@ struct vk_surface {
 };
 
 struct vk_swapchain {
-	vk_surface_t		   *vk_surface;
 	VkAllocationCallbacks	allocator;
+	vk_surface_t		   *surface;
+
 	tbm_surface_h		   *buffers;
-	int						buffer_index;
-	int						buffer_count;
+	uint32_t				buffer_count;
 };
 
 VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL
