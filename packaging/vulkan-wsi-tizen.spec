@@ -24,7 +24,7 @@ Vulkan WSI (Window System Integration) Layer for Tizen
 %setup -q
 
 %build
-%autogen
+%autogen --enable-wayland
 make %{?_smp_mflags}
 
 %install
