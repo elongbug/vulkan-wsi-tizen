@@ -106,6 +106,7 @@ struct nulldrv_img {
     VkFlags usage;
     VkSampleCountFlagBits samples;
     size_t total_size;
+	tbm_surface_h tbm_surface;
 };
 
 struct nulldrv_mem {
@@ -472,6 +473,7 @@ img_get_memory_requirements(struct nulldrv_base *base,
 
 static VkResult
 nulldrv_img_create(struct nulldrv_dev *dev,
+				   tbm_surface_h tbm_surface,
 				   const VkImageCreateInfo *info,
 				   bool scanout,
 				   struct nulldrv_img **img_ret)
@@ -484,6 +486,7 @@ nulldrv_img_create(struct nulldrv_dev *dev,
 	if (!img)
 		return VK_ERROR_OUT_OF_HOST_MEMORY;
 
+	img->tbm_surface = tbm_surface;
 	img->type = info->imageType;
 	img->depth = info->extent.depth;
 	img->mip_levels = info->mipLevels;
@@ -1587,7 +1590,7 @@ create_image(VkDevice device,
 	NULLDRV_LOG_FUNC;
 	struct nulldrv_dev *dev = nulldrv_dev(device);
 
-	return nulldrv_img_create(dev, info, false,
+	return nulldrv_img_create(dev, NULL, info, false,
 							  (struct nulldrv_img **) image);
 }
 
@@ -2503,6 +2506,19 @@ vk_icdGetInstanceProcAddr(VkInstance instance, const char *name)
 		if (strcmp(name, device_funcs[i].name) == 0)
 			return device_funcs[i].func;
 	}
+
+	return NULL;
+}
+
+VK_EXPORT VkImage
+vk_create_presentable_image(VkDevice device, const VkImageCreateInfo *info, tbm_surface_h surface)
+{
+	NULLDRV_LOG_FUNC;
+	struct nulldrv_dev *dev = nulldrv_dev(device);
+	struct nulldrv_img *img;
+
+	if (nulldrv_img_create(dev, surface, info, false, &img) == VK_SUCCESS)
+		return (VkImage)img;
 
 	return NULL;
 }

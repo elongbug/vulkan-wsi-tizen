@@ -31,8 +31,12 @@
 
 #include <config.h>
 #include <vulkan/vulkan.h>
+#include <tbm_surface.h>
 
 VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL
 vk_icdGetInstanceProcAddr(VkInstance instance, const char *name);
+
+VkImage
+vk_create_presentable_image(VkDevice device, const VkImageCreateInfo *info, tbm_surface_h surface);
 
 #endif /* NULL_DRIVER_H */
