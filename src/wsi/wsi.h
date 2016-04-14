@@ -34,6 +34,12 @@
 
 typedef struct vk_surface	vk_surface_t;
 typedef struct vk_swapchain	vk_swapchain_t;
+typedef struct vk_buffer	vk_buffer_t;
+
+struct vk_buffer {
+	tbm_surface_h	tbm;
+	VkImage			image;
+};
 
 struct vk_swapchain {
 	VkAllocationCallbacks	 allocator;
@@ -43,7 +49,7 @@ struct vk_swapchain {
 	tpl_surface_t			*tpl_surface;
 
 	uint32_t				 buffer_count;
-	tbm_surface_h			*buffers;
+	vk_buffer_t				*buffers;
 };
 
 VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL

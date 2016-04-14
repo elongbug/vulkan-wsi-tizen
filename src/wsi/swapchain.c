@@ -35,6 +35,8 @@ vk_CreateSwapchainKHR(VkDevice							 device,
 	tbm_format			 format;
 	tpl_result_t		 res;
 	VkIcdSurfaceWayland	*surface = (VkIcdSurfaceWayland *)info->surface;
+	int					 buffer_count, i;
+	tbm_surface_h		*buffers;
 
 	VK_ASSERT(surface->base.platform == VK_ICD_WSI_PLATFORM_WAYLAND);
 
@@ -52,7 +54,7 @@ vk_CreateSwapchainKHR(VkDevice							 device,
 	allocator = vk_get_allocator(device, allocator);
 
 	chain = vk_alloc(allocator, sizeof(vk_swapchain_t), VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
-	VK_CHECK(chain, return VK_ERROR_OUT_OF_HOST_MEMORY, "swapchain vk_alloc() failed.\n");
+	VK_CHECK(chain, return VK_ERROR_OUT_OF_HOST_MEMORY, "vk_alloc() failed.\n");
 
 	memset(chain, 0x00, sizeof(vk_swapchain_t));
 
@@ -73,6 +75,21 @@ vk_CreateSwapchainKHR(VkDevice							 device,
 									   info->minImageCount);
 	VK_CHECK(res == TPL_ERROR_NONE, goto error, "tpl_surface_create_swapchain() failed.\n");
 
+	/* Initialize swapchain buffers. */
+	res = tpl_surface_get_swapchain_buffers(chain->tpl_surface, &buffers, &buffer_count);
+	VK_CHECK(res == TPL_ERROR_NONE, goto error, "tpl_surface_get_swapchain_buffers() failed.\n");
+
+	chain->buffers = vk_alloc(allocator, buffer_count * sizeof(vk_buffer_t),
+							  VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+	VK_CHECK(chain->buffers, return VK_ERROR_OUT_OF_HOST_MEMORY, "vk_alloc() failed.\n");
+
+	for (i = 0; i < buffer_count; i++) {
+		chain->buffers[i].tbm = buffers[i];
+
+		/* TODO: Create VkImage from tbm_surface_h. */
+		chain->buffers[i].image = (VkImage)buffers[i];
+	}
+
 	*swapchain = (VkSwapchainKHR)chain;
 	return VK_SUCCESS;
 
@@ -82,6 +99,9 @@ error:
 
 	if (chain->tpl_surface)
 		tpl_object_unreference((tpl_object_t *)chain->tpl_surface);
+
+	if (chain->buffers)
+		vk_free(allocator, chain->buffers);
 
 	vk_free(allocator, chain);
 	return VK_ERROR_DEVICE_LOST;
@@ -125,25 +145,13 @@ vk_GetSwapchainImagesKHR(VkDevice		 device,
 {
 	vk_swapchain_t *chain = (vk_swapchain_t *)swapchain;
 
-	if (chain->buffer_count == 0) {
-		tpl_result_t	res;
-		int				buffer_count;
-
-		res = tpl_surface_get_swapchain_buffers(chain->tpl_surface, &chain->buffers, &buffer_count);
-		VK_CHECK(res == TPL_ERROR_NONE, return VK_ERROR_SURFACE_LOST_KHR,
-				 "tpl_surface_get_swapchain_buffers() failed\n.");
-		chain->buffer_count = buffer_count;
-	}
-
 	if (images) {
 		uint32_t i;
 
 		*image_count = MIN(*image_count, chain->buffer_count);
 
-		for (i = 0; i < *image_count; i++) {
-			/* TODO: tbm_surface_h to VkImage */
-			images[i] = (VkImage)chain->buffers[i];
-		}
+		for (i = 0; i < *image_count; i++)
+			images[i] = chain->buffers[i].image;
 
 		if (*image_count < chain->buffer_count)
 			return VK_INCOMPLETE;
@@ -172,7 +180,7 @@ vk_AcquireNextImageKHR(VkDevice			 device,
 	VK_CHECK(next, return VK_ERROR_SURFACE_LOST_KHR, "tpl_surface_dequeue_buffers() failed\n.");
 
 	for (i = 0; i < chain->buffer_count; i++) {
-		if (next == chain->buffers[i]) {
+		if (next == chain->buffers[i].tbm) {
 			*image_index = i;
 			return VK_SUCCESS;
 		}
@@ -192,7 +200,7 @@ vk_QueuePresentKHR(VkQueue					 queue,
 		vk_swapchain_t	*chain = (vk_swapchain_t *)info->pSwapchains[i];
 
 		res = tpl_surface_enqueue_buffer(chain->tpl_surface,
-										 chain->buffers[info->pImageIndices[i]]);
+										 chain->buffers[info->pImageIndices[i]].tbm);
 
 		if (info->pResults != NULL)
 			info->pResults[i] = res == TPL_ERROR_NONE ? VK_SUCCESS : VK_ERROR_DEVICE_LOST;
