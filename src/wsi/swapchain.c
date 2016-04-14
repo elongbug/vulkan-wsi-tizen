@@ -31,10 +31,12 @@ vk_CreateSwapchainKHR(VkDevice							 device,
 					  const VkAllocationCallbacks		*allocator,
 					  VkSwapchainKHR					*swapchain)
 {
-	vk_swapchain_t *chain;
-	vk_surface_t *sfc = (vk_surface_t *)info->surface;
-	tbm_format format;
-	tpl_result_t res;
+	vk_swapchain_t		*chain;
+	tbm_format			 format;
+	tpl_result_t		 res;
+	VkIcdSurfaceWayland	*surface = (VkIcdSurfaceWayland *)info->surface;
+
+	VK_ASSERT(surface->base.platform == VK_ICD_WSI_PLATFORM_WAYLAND);
 
 	switch (info->imageFormat) {
 		case VK_FORMAT_R8G8B8_SRGB:
@@ -44,7 +46,7 @@ vk_CreateSwapchainKHR(VkDevice							 device,
 			format = TBM_FORMAT_ARGB8888;
 			break;
 		default:
-			format = TBM_FORMAT_ARGB8888;
+			return VK_ERROR_SURFACE_LOST_KHR;
 	}
 
 	allocator = vk_get_allocator(device, allocator);
@@ -54,17 +56,33 @@ vk_CreateSwapchainKHR(VkDevice							 device,
 
 	memset(chain, 0x00, sizeof(vk_swapchain_t));
 
-	res = tpl_surface_create_swapchain(sfc->tpl.surface, format, info->imageExtent.width,
-									   info->imageExtent.height, info->minImageCount);
-	VK_CHECK(res == TPL_ERROR_NONE, goto error, "tpl_surface_create_swapchain() failed.\n");
-
 	chain->allocator = *allocator;
-	chain->surface = sfc;
+	chain->surface = info->surface;
+
+	/* Don't check NULL for display and window. There might be default ones for some systems. */
+
+	chain->tpl_display = tpl_display_get(surface->display);
+	VK_CHECK(chain->tpl_display, goto error, "tpl_display_get() failed.\n");
+
+	chain->tpl_surface = tpl_surface_create(chain->tpl_display, surface->surface,
+											TPL_SURFACE_TYPE_WINDOW, format);
+	VK_CHECK(chain->tpl_surface, goto error, "tpl_surface_create() failed.\n");
+
+	res = tpl_surface_create_swapchain(chain->tpl_surface, format,
+									   info->imageExtent.width, info->imageExtent.height,
+									   info->minImageCount);
+	VK_CHECK(res == TPL_ERROR_NONE, goto error, "tpl_surface_create_swapchain() failed.\n");
 
 	*swapchain = (VkSwapchainKHR)chain;
 	return VK_SUCCESS;
 
 error:
+	if (chain->tpl_display)
+		tpl_object_unreference((tpl_object_t *)chain->tpl_display);
+
+	if (chain->tpl_surface)
+		tpl_object_unreference((tpl_object_t *)chain->tpl_surface);
+
 	vk_free(allocator, chain);
 	return VK_ERROR_DEVICE_LOST;
 }
@@ -87,8 +105,14 @@ vk_DestroySwapchainKHR(VkDevice						 device,
 {
 	vk_swapchain_t *chain = (vk_swapchain_t *)swapchain;
 
-	tpl_surface_destroy_swapchain(chain->surface->tpl.surface);
+	tpl_surface_destroy_swapchain(chain->tpl_surface);
 	free(chain->buffers);
+
+	if (chain->tpl_display)
+		tpl_object_unreference((tpl_object_t *)chain->tpl_display);
+
+	if (chain->tpl_surface)
+		tpl_object_unreference((tpl_object_t *)chain->tpl_surface);
 
 	vk_free(&chain->allocator, chain);
 }
@@ -105,8 +129,7 @@ vk_GetSwapchainImagesKHR(VkDevice		 device,
 		tpl_result_t	res;
 		int				buffer_count;
 
-		res = tpl_surface_get_swapchain_buffers(chain->surface->tpl.surface,
-												&chain->buffers, &buffer_count);
+		res = tpl_surface_get_swapchain_buffers(chain->tpl_surface, &chain->buffers, &buffer_count);
 		VK_CHECK(res == TPL_ERROR_NONE, return VK_ERROR_SURFACE_LOST_KHR,
 				 "tpl_surface_get_swapchain_buffers() failed\n.");
 		chain->buffer_count = buffer_count;
@@ -145,7 +168,7 @@ vk_AcquireNextImageKHR(VkDevice			 device,
 	tbm_surface_h	 next;
 	vk_swapchain_t	*chain = (vk_swapchain_t *)swapchain;
 
-	next = tpl_surface_dequeue_buffer(chain->surface->tpl.surface);
+	next = tpl_surface_dequeue_buffer(chain->tpl_surface);
 	VK_CHECK(next, return VK_ERROR_SURFACE_LOST_KHR, "tpl_surface_dequeue_buffers() failed\n.");
 
 	for (i = 0; i < chain->buffer_count; i++) {
@@ -168,7 +191,7 @@ vk_QueuePresentKHR(VkQueue					 queue,
 		tpl_result_t	 res;
 		vk_swapchain_t	*chain = (vk_swapchain_t *)info->pSwapchains[i];
 
-		res = tpl_surface_enqueue_buffer(chain->surface->tpl.surface,
+		res = tpl_surface_enqueue_buffer(chain->tpl_surface,
 										 chain->buffers[info->pImageIndices[i]]);
 
 		if (info->pResults != NULL)

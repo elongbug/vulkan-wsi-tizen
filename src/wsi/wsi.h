@@ -35,27 +35,15 @@
 typedef struct vk_surface	vk_surface_t;
 typedef struct vk_swapchain	vk_swapchain_t;
 
-struct vk_surface {
-	union {
-		VkIcdSurfaceBase	base;
-		VkIcdSurfaceDisplay	display;
-		VkIcdSurfaceWayland	wayland;
-	} platform;
-
-	VkAllocationCallbacks	allocator;
-
-	struct {
-		tpl_display_t	   *display;
-		tpl_surface_t	   *surface;
-	} tpl;
-};
-
 struct vk_swapchain {
-	VkAllocationCallbacks	allocator;
-	vk_surface_t		   *surface;
+	VkAllocationCallbacks	 allocator;
+	VkSurfaceKHR			 surface;
 
-	tbm_surface_h		   *buffers;
-	uint32_t				buffer_count;
+	tpl_display_t			*tpl_display;
+	tpl_surface_t			*tpl_surface;
+
+	uint32_t				 buffer_count;
+	tbm_surface_h			*buffers;
 };
 
 VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL
@@ -75,10 +63,6 @@ void
 vk_free(const VkAllocationCallbacks *allocator, void *mem);
 
 /* Entry point proto types. */
-VKAPI_ATTR void VKAPI_CALL
-vk_DestroySurfaceKHR(VkInstance instance, VkSurfaceKHR surface,
-					 const VkAllocationCallbacks *allocator);
-
 VKAPI_ATTR VkResult VKAPI_CALL
 vk_GetPhysicalDeviceSurfaceSupportKHR(VkPhysicalDevice pdev, uint32_t queue_family_index,
 									  VkSurfaceKHR surface, VkBool32 *supported);
@@ -140,17 +124,9 @@ vk_GetDisplayPlaneCapabilitiesKHR(VkPhysicalDevice pdev, VkDisplayModeKHR mode,
 								  uint32_t plane_index, VkDisplayPlaneCapabilitiesKHR *caps);
 
 VKAPI_ATTR VkResult VKAPI_CALL
-vk_CreateDisplayPlaneSurfaceKHR(VkInstance instance, const VkDisplaySurfaceCreateInfoKHR *info,
-								const VkAllocationCallbacks *allocator, VkSurfaceKHR *surface);
-
-VKAPI_ATTR VkResult VKAPI_CALL
 vk_CreateSharedSwapchainsKHR(VkDevice device, uint32_t swapchain_count,
 							 const VkSwapchainCreateInfoKHR *infos,
 							 const VkAllocationCallbacks *allocator, VkSwapchainKHR *swapchains);
-
-VKAPI_ATTR VkResult VKAPI_CALL
-vk_CreateWaylandSurfaceKHR(VkInstance instance, const VkWaylandSurfaceCreateInfoKHR *info,
-						   const VkAllocationCallbacks *allocator, VkSurfaceKHR *surface);
 
 VKAPI_ATTR VkBool32 VKAPI_CALL
 vk_GetPhysicalDeviceWaylandPresentationSupportKHR(VkPhysicalDevice pdev,

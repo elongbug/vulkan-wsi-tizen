@@ -57,7 +57,6 @@ struct vk_icd_loader {
 };
 
 static const vk_entry_t	entry_points[] = {
-	VK_ENTRY_POINT(DestroySurfaceKHR, INSTANCE),
 	VK_ENTRY_POINT(EnumerateInstanceExtensionProperties, INSTANCE),
 	VK_ENTRY_POINT(EnumerateDeviceExtensionProperties, INSTANCE),
 	VK_ENTRY_POINT(GetPhysicalDeviceSurfaceSupportKHR, INSTANCE),
@@ -75,9 +74,7 @@ static const vk_entry_t	entry_points[] = {
 	VK_ENTRY_POINT(GetDisplayModePropertiesKHR, INSTANCE),
 	VK_ENTRY_POINT(CreateDisplayModeKHR, INSTANCE),
 	VK_ENTRY_POINT(GetDisplayPlaneCapabilitiesKHR, INSTANCE),
-	VK_ENTRY_POINT(CreateDisplayPlaneSurfaceKHR, INSTANCE),
 	VK_ENTRY_POINT(CreateSharedSwapchainsKHR, DEVICE),
-	VK_ENTRY_POINT(CreateWaylandSurfaceKHR,INSTANCE),
 	VK_ENTRY_POINT(GetPhysicalDeviceWaylandPresentationSupportKHR,INSTANCE),
 	VK_ENTRY_POINT(GetInstanceProcAddr, INSTANCE),
 	VK_ENTRY_POINT(GetDeviceProcAddr, DEVICE),

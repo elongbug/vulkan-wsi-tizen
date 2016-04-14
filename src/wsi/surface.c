@@ -25,56 +25,6 @@
 #include "wsi.h"
 #include <string.h>
 
-VKAPI_ATTR void VKAPI_CALL
-vk_DestroySurfaceKHR(VkInstance						 instance,
-					 VkSurfaceKHR					 surface,
-					 const VkAllocationCallbacks	*allocator)
-{
-	vk_surface_t *sfc = (vk_surface_t *)surface;
-
-	if (sfc->tpl.surface)
-		tpl_object_unreference((tpl_object_t *)sfc->tpl.surface);
-	if (sfc->tpl.display)
-		tpl_object_unreference((tpl_object_t *)sfc->tpl.display);
-
-	vk_free(&sfc->allocator, sfc);
-}
-
-VKAPI_ATTR VkResult VKAPI_CALL
-vk_CreateWaylandSurfaceKHR(VkInstance							 instance,
-						   const VkWaylandSurfaceCreateInfoKHR	*info,
-						   const VkAllocationCallbacks			*allocator,
-						   VkSurfaceKHR							*surface)
-{
-	vk_surface_t	*sfc;
-
-	allocator = vk_get_allocator(instance, allocator);
-
-	sfc = vk_alloc(allocator, sizeof(vk_surface_t), VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
-	VK_CHECK(sfc, return VK_ERROR_OUT_OF_HOST_MEMORY, "vk_alloc() failed.\n");
-
-	memset(sfc, 0x00, sizeof(vk_surface_t));
-
-	sfc->allocator = *allocator;
-	sfc->platform.base.platform = VK_ICD_WSI_PLATFORM_WAYLAND;
-	sfc->platform.wayland.display = info->display;
-	sfc->platform.wayland.surface = info->surface;
-
-	sfc->tpl.display = tpl_display_create(TPL_BACKEND_WAYLAND_VULKAN_WSI, info->display);
-	VK_CHECK(sfc->tpl.display, goto error, "tpl_display_create() failed.\n");
-
-	sfc->tpl.surface = tpl_surface_create(sfc->tpl.display, info->surface, TPL_SURFACE_TYPE_WINDOW,
-										  TBM_FORMAT_ARGB8888);
-	VK_CHECK(sfc->tpl.surface, goto error, "tpl_surface_create() failed.\n");
-
-	*surface = (VkSurfaceKHR)sfc;
-	return VK_SUCCESS;
-
-error:
-	vk_DestroySurfaceKHR(instance, (VkSurfaceKHR)sfc, allocator);
-	return VK_ERROR_INITIALIZATION_FAILED;
-}
-
 VKAPI_ATTR VkBool32 VKAPI_CALL
 vk_GetPhysicalDeviceWaylandPresentationSupportKHR(VkPhysicalDevice	 pdev,
 												  uint32_t			 queue_family_index,
@@ -82,36 +32,6 @@ vk_GetPhysicalDeviceWaylandPresentationSupportKHR(VkPhysicalDevice	 pdev,
 {
 	/* TODO: */
 	return VK_TRUE;
-}
-
-VKAPI_ATTR VkResult VKAPI_CALL
-vk_CreateDisplayPlaneSurfaceKHR(VkInstance							 instance,
-								const VkDisplaySurfaceCreateInfoKHR	*info,
-								const VkAllocationCallbacks			*allocator,
-								VkSurfaceKHR						*surface)
-{
-	vk_surface_t	*sfc;
-
-	allocator = vk_get_allocator(instance, allocator);
-
-	sfc = vk_alloc(allocator, sizeof(vk_surface_t), VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
-	VK_CHECK(sfc, return VK_ERROR_OUT_OF_HOST_MEMORY, "vk_alloc() failed.\n");
-
-	sfc->allocator = *allocator;
-	sfc->platform.base.platform = VK_ICD_WSI_PLATFORM_DISPLAY;
-	sfc->platform.display.displayMode = info->displayMode;
-	sfc->platform.display.planeIndex = info->planeIndex;
-	sfc->platform.display.planeStackIndex = info->planeStackIndex;
-	sfc->platform.display.transform = info->transform;
-	sfc->platform.display.globalAlpha = info->globalAlpha;
-	sfc->platform.display.alphaMode = info->alphaMode;
-	sfc->platform.display.imageExtent = info->imageExtent;
-
-	*surface = (VkSurfaceKHR)sfc;
-
-	/* TODO: */
-
-	return VK_SUCCESS;
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL
@@ -129,30 +49,47 @@ vk_GetPhysicalDeviceSurfaceCapabilitiesKHR(VkPhysicalDevice			 pdev,
 										   VkSurfaceKHR				 surface,
 										   VkSurfaceCapabilitiesKHR	*caps)
 {
-	int min, max;
-	tpl_result_t res;
-	vk_surface_t *sfc = (vk_surface_t *)surface;
+	VkIcdSurfaceWayland	*sfc = (VkIcdSurfaceWayland *)surface;
+	tpl_display_t		*display;
 
+	VK_CHECK(sfc->base.platform == VK_ICD_WSI_PLATFORM_WAYLAND, return VK_ERROR_DEVICE_LOST,
+			 "Not supported platform surface.\n");
+
+	display = tpl_display_get(sfc->display);
+	VK_CHECK(display, return VK_ERROR_DEVICE_LOST, "tpl_display_get() failed.\n");
+
+#if 0
 	res = tpl_surface_query_supported_buffer_count(sfc->tpl.surface, &min, &max);
 	VK_CHECK(res == TPL_ERROR_NONE, return VK_ERROR_DEVICE_LOST,
 			 "tpl_surface_query_supported_buffer_count() failed.\n");
+#endif
 
-	caps->minImageCount = min;
-	caps->maxImageCount = max;
+	/* TODO: Hard-coded. */
+	caps->minImageCount = 3;
+	caps->maxImageCount = 3;
+
 	caps->currentExtent.width = -1;
 	caps->currentExtent.height = -1;
+
 	caps->minImageExtent.width = 1;
 	caps->minImageExtent.height = 1;
+
 	caps->maxImageExtent.width = INT16_MAX;
 	caps->maxImageExtent.height = INT16_MAX;
+
 	caps->maxImageArrayLayers = 1;
+
 	caps->supportedTransforms = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
 	caps->currentTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
 	caps->supportedCompositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR |
 		VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR;
+
 	caps->supportedUsageFlags = VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
 		VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
 		VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+	if (display)
+		tpl_object_unreference((tpl_object_t *)display);
 
 	return VK_SUCCESS;
 }
