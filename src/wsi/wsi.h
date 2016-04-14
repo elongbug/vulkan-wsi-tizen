@@ -68,6 +68,9 @@ vk_realloc(const VkAllocationCallbacks *allocator, void *mem, size_t size,
 void
 vk_free(const VkAllocationCallbacks *allocator, void *mem);
 
+PFN_vkVoidFunction
+vk_icd_get_proc_addr(VkInstance instance, const char *name);
+
 /* Entry point proto types. */
 VKAPI_ATTR VkResult VKAPI_CALL
 vk_GetPhysicalDeviceSurfaceSupportKHR(VkPhysicalDevice pdev, uint32_t queue_family_index,
