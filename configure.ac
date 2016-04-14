@@ -29,44 +29,8 @@ GCC_CFLAGS="-Wall -Wextra -Wno-unused-parameter \
 fi
 AC_SUBST(GCC_CFLAGS)
 
-# Vulkan platform Wayland
-AC_ARG_ENABLE(wayland,
-			  AC_HELP_STRING([--enable-wayland], [Enable wayland WSI functions]),
-			  enable_wayland=$enableval,
-			  enable_wayland=no)
-
-if test x$enable_wayland = xyes; then
-	PKG_CHECK_MODULES(WAYLAND, [wayland-client])
-	AC_DEFINE([VK_USE_PLATFORM_WAYLAND_KHR], [1], [Enable wayland WSI functions])
-fi
-
-AM_CONDITIONAL(ENABLE_WAYLAND, test x$enable_wayland = xyes)
-
-# Vulkan platform XLIB
-AC_ARG_ENABLE(x11,
-			  AC_HELP_STRING([--enable-x11], [Enable X11 WSI functions]),
-			  enable_x11=$enableval,
-			  enable_x11=no)
-
-if test x$enable_x11 = xyes; then
-	PKG_CHECK_MODULES(X11, [x11])
-	AC_DEFINE([VK_USE_PLATFORM_XLIB_KHR], [1], [Enable X11 WSI functions])
-fi
-
-AM_CONDITIONAL(ENABLE_X11, test x$enable_x11 = xyes)
-
-# Vulkan platform XCB
-AC_ARG_ENABLE(xcb,
-			  AC_HELP_STRING([--enable-xcb], [Enable XCB WSI functions]),
-			  enable_xcb=$enableval,
-			  enable_xcb=no)
-
-if test x$enable_xcb = xyes; then
-	PKG_CHECK_MODULES(XCB, [xcb])
-	AC_DEFINE([VK_USE_PLATFORM_XCB_KHR], [1], [Enable XCB WSI functions])
-fi
-
-AM_CONDITIONAL(ENABLE_XCB, test x$enable_xcb = xyes)
+PKG_CHECK_MODULES(WAYLAND, [wayland-client])
+AC_DEFINE([VK_USE_PLATFORM_WAYLAND_KHR], [1], [Enable wayland WSI functions])
 
 PKG_CHECK_MODULES(TPL, [tpl-egl])
 PKG_CHECK_MODULES(TBM, [libtbm])

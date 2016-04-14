@@ -39,18 +39,7 @@ struct vk_surface {
 	union {
 		VkIcdSurfaceBase	base;
 		VkIcdSurfaceDisplay	display;
-
-#ifdef VK_USE_PLATFORM_XLIB_KHR
-		VkIcdSurfaceXlib	xlib;
-#endif
-
-#ifdef VK_USE_PLATFORM_XCB_KHR
-		VkIcdSurfaceXcb		xcb;
-#endif
-
-#ifdef VK_USE_PLATFORM_WAYLAND_KHR
 		VkIcdSurfaceWayland	wayland;
-#endif
 	} platform;
 
 	VkAllocationCallbacks	allocator;
@@ -159,28 +148,6 @@ vk_CreateSharedSwapchainsKHR(VkDevice device, uint32_t swapchain_count,
 							 const VkSwapchainCreateInfoKHR *infos,
 							 const VkAllocationCallbacks *allocator, VkSwapchainKHR *swapchains);
 
-#ifdef VK_USE_PLATFORM_XLIB_KHR
-VKAPI_ATTR VkResult VKAPI_CALL
-vk_CreateXlibSurfaceKHR(VkInstance instance, const VkXlibSurfaceCreateInfoKHR *info,
-						const VkAllocationCallbacks *allocator, VkSurfaceKHR *surface);
-
-VKAPI_ATTR VkBool32 VKAPI_CALL
-vk_GetPhysicalDeviceXlibPresentationSupportKHR(VkPhysicalDevice pdev, uint32_t queue_family_index,
-											   Display *dpy, VisualID visual_id);
-#endif
-
-#ifdef VK_USE_PLATFORM_XCB_KHR
-VKAPI_ATTR VkResult VKAPI_CALL
-vk_CreateXcbSurfaceKHR(VkInstance instance, const VkXcbSurfaceCreateInfoKHR *info,
-					   const VkAllocationCallbacks *allocator, VkSurfaceKHR *surface);
-
-VKAPI_ATTR VkBool32 VKAPI_CALL
-vk_GetPhysicalDeviceXcbPresentationSupportKHR(VkPhysicalDevice pdev, uint32_t queue_family_index,
-											  xcb_connection_t *connection,
-											  xcb_visualid_t visual_id);
-#endif
-
-#ifdef VK_USE_PLATFORM_WAYLAND_KHR
 VKAPI_ATTR VkResult VKAPI_CALL
 vk_CreateWaylandSurfaceKHR(VkInstance instance, const VkWaylandSurfaceCreateInfoKHR *info,
 						   const VkAllocationCallbacks *allocator, VkSurfaceKHR *surface);
@@ -189,7 +156,6 @@ VKAPI_ATTR VkBool32 VKAPI_CALL
 vk_GetPhysicalDeviceWaylandPresentationSupportKHR(VkPhysicalDevice pdev,
 												  uint32_t queue_family_index,
 												  struct wl_display *display);
-#endif
 
 VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL
 vk_GetInstanceProcAddr(VkInstance instance, const char *name);

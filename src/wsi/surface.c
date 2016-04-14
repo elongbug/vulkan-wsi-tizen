@@ -40,81 +40,6 @@ vk_DestroySurfaceKHR(VkInstance						 instance,
 	vk_free(&sfc->allocator, sfc);
 }
 
-#ifdef VK_USE_PLATFORM_XLIB_KHR
-VKAPI_ATTR VkResult VKAPI_CALL
-vk_CreateXlibSurfaceKHR(VkInstance							 instance,
-						const VkXlibSurfaceCreateInfoKHR	*info,
-						const VkAllocationCallbacks			*allocator,
-						VkSurfaceKHR						*surface)
-{
-	vk_surface_t	*sfc;
-
-	allocator = vk_get_allocator(instance, allocator);
-
-	sfc = vk_alloc(allocator, sizeof(vk_surface_t), VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
-	VK_CHECK(sfc, return VK_ERROR_OUT_OF_HOST_MEMORY, "vk_alloc() failed.\n");
-
-	sfc->allocator = *allocator;
-	sfc->platform.base.platform = VK_ICD_WSI_PLATFORM_XLIB;
-	sfc->platform.xlib.dpy = info->dpy;
-	sfc->platform.xlib.window = info->window;
-
-	*surface = (VkSurfaceKHR)sfc;
-
-	/* TODO: */
-
-	return VK_SUCCESS;
-}
-
-VKAPI_ATTR VkBool32 VKAPI_CALL
-vk_GetPhysicalDeviceXlibPresentationSupportKHR(VkPhysicalDevice	 pdev,
-											   uint32_t			 queue_family_index,
-											   Display			*dpy,
-											   VisualID			 visual_id)
-{
-	/* TODO: */
-	return VK_TRUE;
-}
-#endif
-
-#ifdef VK_USE_PLATFORM_XCB_KHR
-VKAPI_ATTR VkResult VKAPI_CALL
-vk_CreateXcbSurfaceKHR(VkInstance							 instance,
-					   const VkXcbSurfaceCreateInfoKHR		*info,
-					   const VkAllocationCallbacks			*allocator,
-					   VkSurfaceKHR							*surface)
-{
-	vk_surface_t	*sfc;
-
-	allocator = vk_get_allocator(instance, allocator);
-
-	sfc = vk_alloc(allocator, sizeof(vk_surface_t), VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
-	VK_CHECK(sfc, return VK_ERROR_OUT_OF_HOST_MEMORY, "vk_alloc() failed.\n");
-
-	sfc->allocator = *allocator;
-	sfc->platform.base.platform = VK_ICD_WSI_PLATFORM_XCB;
-	sfc->platform.xcb.connection = info->connection;
-	sfc->platform.xcb.window = info->window;
-
-	*surface = (VkSurfaceKHR)sfc;
-
-	/* TODO: */
-
-	return VK_SUCCESS;
-}
-
-VKAPI_ATTR VkBool32 VKAPI_CALL
-vk_GetPhysicalDeviceXcbPresentationSupportKHR(VkPhysicalDevice	 pdev,
-											  uint32_t			 queue_family_index,
-											  xcb_connection_t	*connection,
-											  xcb_visualid_t	 visual_id)
-{
-	/* TODO: */
-	return VK_TRUE;
-}
-#endif
-
-#ifdef VK_USE_PLATFORM_WAYLAND_KHR
 VKAPI_ATTR VkResult VKAPI_CALL
 vk_CreateWaylandSurfaceKHR(VkInstance							 instance,
 						   const VkWaylandSurfaceCreateInfoKHR	*info,
@@ -158,7 +83,6 @@ vk_GetPhysicalDeviceWaylandPresentationSupportKHR(VkPhysicalDevice	 pdev,
 	/* TODO: */
 	return VK_TRUE;
 }
-#endif
 
 VKAPI_ATTR VkResult VKAPI_CALL
 vk_CreateDisplayPlaneSurfaceKHR(VkInstance							 instance,

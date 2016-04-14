@@ -77,22 +77,8 @@ static const vk_entry_t	entry_points[] = {
 	VK_ENTRY_POINT(GetDisplayPlaneCapabilitiesKHR, INSTANCE),
 	VK_ENTRY_POINT(CreateDisplayPlaneSurfaceKHR, INSTANCE),
 	VK_ENTRY_POINT(CreateSharedSwapchainsKHR, DEVICE),
-
-#ifdef VK_USE_PLATFORM_XLIB_KHR
-	VK_ENTRY_POINT(CreateXlibSurfaceKHR,INSTANCE),
-	VK_ENTRY_POINT(GetPhysicalDeviceXlibPresentationSupportKHR,INSTANCE),
-#endif
-
-#ifdef VK_USE_PLATFORM_XCB_KHR
-	VK_ENTRY_POINT(CreateXcbSurfaceKHR,INSTANCE),
-	VK_ENTRY_POINT(GetPhysicalDeviceXcbPresentationSupportKHR,INSTANCE),
-#endif
-
-#ifdef VK_USE_PLATFORM_WAYLAND_KHR
 	VK_ENTRY_POINT(CreateWaylandSurfaceKHR,INSTANCE),
 	VK_ENTRY_POINT(GetPhysicalDeviceWaylandPresentationSupportKHR,INSTANCE),
-#endif
-
 	VK_ENTRY_POINT(GetInstanceProcAddr, INSTANCE),
 	VK_ENTRY_POINT(GetDeviceProcAddr, DEVICE),
 };
@@ -116,18 +102,7 @@ static vk_icd_loader_t	icd;
 
 static const VkExtensionProperties global_extensions[] = {
 	{ VK_KHR_SURFACE_EXTENSION_NAME, 25 },
-
-#ifdef VK_USE_PLATFORM_XLIB_KHR
-	{ VK_KHR_XLIB_SURFACE_EXTENSION_NAME, 4 },
-#endif
-
-#ifdef VK_USE_PLATFORM_XCB_KHR
-	{ VK_KHR_XCB_SURFACE_EXTENSION_NAME, 4 },
-#endif
-
-#ifdef VK_USE_PLATFORM_WAYLAND_KHR
 	{ VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME, 4 },
-#endif
 };
 
 static void __attribute__((constructor))
