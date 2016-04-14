@@ -38,6 +38,9 @@ struct vk_icd {
 
 	uint32_t				 global_extension_count;
 	VkExtensionProperties	*global_extensions;
+
+	/* WSI-ICD interface. */
+	VkImage	(*create_presentable_image)(VkDevice, const VkImageCreateInfo *, tbm_surface_h);
 };
 
 static vk_icd_t	icd;
@@ -105,6 +108,14 @@ PFN_vkVoidFunction
 vk_icd_get_proc_addr(VkInstance instance, const char *name)
 {
 	return icd.gpa(instance, name);
+}
+
+VkImage
+vk_icd_create_presentable_image(VkDevice				 device,
+								const VkImageCreateInfo *info,
+								tbm_surface_h			 surface)
+{
+	return icd.create_presentable_image(device, info, surface);
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL
