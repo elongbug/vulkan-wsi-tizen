@@ -84,10 +84,26 @@ vk_CreateSwapchainKHR(VkDevice							 device,
 	VK_CHECK(chain->buffers, return VK_ERROR_OUT_OF_HOST_MEMORY, "vk_alloc() failed.\n");
 
 	for (i = 0; i < buffer_count; i++) {
-		chain->buffers[i].tbm = buffers[i];
+		VkImageCreateInfo image_info = {
+			VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+			NULL,
+			0,
+			VK_IMAGE_TYPE_2D,
+			info->imageFormat,
+			{ info->imageExtent.width, info->imageExtent.height, 0 },
+			0,
+			0,
+			0,
+			VK_IMAGE_TILING_LINEAR,
+			VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+			VK_SHARING_MODE_EXCLUSIVE,
+			0,
+			NULL,
+			VK_IMAGE_LAYOUT_UNDEFINED,
+		};
 
-		/* TODO: Create VkImage from tbm_surface_h. */
-		chain->buffers[i].image = (VkImage)buffers[i];
+		chain->buffers[i].tbm = buffers[i];
+		chain->buffers[i].image = vk_icd_create_presentable_image(device, &image_info, buffers[i]);
 	}
 
 	*swapchain = (VkSwapchainKHR)chain;
