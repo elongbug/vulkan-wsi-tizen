@@ -68,6 +68,15 @@ vk_realloc(const VkAllocationCallbacks *allocator, void *mem, size_t size,
 void
 vk_free(const VkAllocationCallbacks *allocator, void *mem);
 
+static inline tpl_display_t *
+vk_get_tpl_display(tpl_handle_t native_dpy)
+{
+	tpl_display_t *display = tpl_display_create(TPL_BACKEND_WAYLAND_VULKAN_WSI, native_dpy);
+	if (display == NULL)
+		display = tpl_display_get(native_dpy);
+	return display;
+};
+
 PFN_vkVoidFunction
 vk_icd_get_proc_addr(VkInstance instance, const char *name);
 
