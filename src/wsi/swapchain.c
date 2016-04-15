@@ -106,6 +106,7 @@ vk_CreateSwapchainKHR(VkDevice							 device,
 		chain->buffers[i].image = vk_icd_create_presentable_image(device, &image_info, buffers[i]);
 	}
 
+	chain->buffer_count = buffer_count;
 	*swapchain = (VkSwapchainKHR)chain;
 	return VK_SUCCESS;
 
