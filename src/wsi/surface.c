@@ -55,8 +55,8 @@ vk_GetPhysicalDeviceSurfaceCapabilitiesKHR(VkPhysicalDevice			 pdev,
 	VK_CHECK(sfc->base.platform == VK_ICD_WSI_PLATFORM_WAYLAND, return VK_ERROR_DEVICE_LOST,
 			 "Not supported platform surface.\n");
 
-	display = tpl_display_get(sfc->display);
-	VK_CHECK(display, return VK_ERROR_DEVICE_LOST, "tpl_display_get() failed.\n");
+	display = vk_get_tpl_display(sfc->display);
+	VK_CHECK(display, return VK_ERROR_DEVICE_LOST, "vk_get_tpl_display() failed.\n");
 
 #if 0
 	res = tpl_surface_query_supported_buffer_count(sfc->tpl.surface, &min, &max);
