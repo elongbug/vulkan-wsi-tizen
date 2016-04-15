@@ -95,6 +95,8 @@ icd_init(void)
 		   ARRAY_LENGTH(global_extensions) * sizeof(VkExtensionProperties));
 
 	icd.global_extension_count = count + ARRAY_LENGTH(global_extensions);
+
+	icd.create_presentable_image = dlsym(icd.lib, "vk_create_presentable_image");
 }
 
 static void __attribute__((destructor))
