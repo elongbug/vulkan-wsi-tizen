@@ -63,8 +63,8 @@ vk_CreateSwapchainKHR(VkDevice							 device,
 
 	/* Don't check NULL for display and window. There might be default ones for some systems. */
 
-	chain->tpl_display = tpl_display_get(surface->display);
-	VK_CHECK(chain->tpl_display, goto error, "tpl_display_get() failed.\n");
+	chain->tpl_display = vk_get_tpl_display(surface->display);
+	VK_CHECK(chain->tpl_display, goto error, "vk_get_tpl_display() failed.\n");
 
 	chain->tpl_surface = tpl_surface_create(chain->tpl_display, surface->surface,
 											TPL_SURFACE_TYPE_WINDOW, format);
