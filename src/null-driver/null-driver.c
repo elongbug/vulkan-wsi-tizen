@@ -36,6 +36,7 @@
 #include <utils.h>
 
 #if 0
+#include <stdio.h>
 #define NULLDRV_LOG_FUNC \
 	do { \
 		fflush(stdout); \
