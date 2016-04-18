@@ -34,7 +34,7 @@ vk_CreateSwapchainKHR(VkDevice							 device,
 	vk_swapchain_t		*chain;
 	tbm_format			 format;
 	tpl_result_t		 res;
-	VkIcdSurfaceWayland	*surface = (VkIcdSurfaceWayland *)info->surface;
+	VkIcdSurfaceWayland	*surface = (VkIcdSurfaceWayland *)(uintptr_t)info->surface;
 	int					 buffer_count, i;
 	tbm_surface_h		*buffers;
 
@@ -107,7 +107,7 @@ vk_CreateSwapchainKHR(VkDevice							 device,
 	}
 
 	chain->buffer_count = buffer_count;
-	*swapchain = (VkSwapchainKHR)chain;
+	*swapchain = (VkSwapchainKHR)(uintptr_t)chain;
 	return VK_SUCCESS;
 
 error:
@@ -140,7 +140,7 @@ vk_DestroySwapchainKHR(VkDevice						 device,
 					   VkSwapchainKHR				 swapchain,
 					   const VkAllocationCallbacks	*allocator)
 {
-	vk_swapchain_t *chain = (vk_swapchain_t *)swapchain;
+	vk_swapchain_t *chain = (vk_swapchain_t *)(uintptr_t)swapchain;
 
 	tpl_surface_destroy_swapchain(chain->tpl_surface);
 	free(chain->buffers);
@@ -160,7 +160,7 @@ vk_GetSwapchainImagesKHR(VkDevice		 device,
 						 uint32_t		*image_count,
 						 VkImage		*images)
 {
-	vk_swapchain_t *chain = (vk_swapchain_t *)swapchain;
+	vk_swapchain_t *chain = (vk_swapchain_t *)(uintptr_t)swapchain;
 
 	if (images) {
 		uint32_t i;
@@ -191,7 +191,7 @@ vk_AcquireNextImageKHR(VkDevice			 device,
 
 	uint32_t		 i;
 	tbm_surface_h	 next;
-	vk_swapchain_t	*chain = (vk_swapchain_t *)swapchain;
+	vk_swapchain_t	*chain = (vk_swapchain_t *)(uintptr_t)swapchain;
 
 	next = tpl_surface_dequeue_buffer(chain->tpl_surface);
 	VK_CHECK(next, return VK_ERROR_SURFACE_LOST_KHR, "tpl_surface_dequeue_buffers() failed\n.");
@@ -219,9 +219,9 @@ vk_QueuePresentKHR(VkQueue					 queue,
 		tbm_surface_h tbm;
 		tbm_surface_info_s sinfo;
 		int map_ret;
-		uint32_t color, k;
+		uint32_t color = 0, k;
 #endif
-		vk_swapchain_t	*chain = (vk_swapchain_t *)info->pSwapchains[i];
+		vk_swapchain_t	*chain = (vk_swapchain_t *)(uintptr_t)info->pSwapchains[i];
 
 #if 1 /* TODO: later remove this code section, it is needed just for Swapchaing debugging */
 		VK_DEBUG("%s, tbm_surface: %p, index: %d\n", __func__,
@@ -231,7 +231,7 @@ vk_QueuePresentKHR(VkQueue					 queue,
 
 		map_ret = tbm_surface_map(tbm, TBM_SURF_OPTION_WRITE|TBM_SURF_OPTION_READ, &sinfo);
 		if (map_ret == TBM_SURFACE_ERROR_NONE) {
-			uint32_t *ptr = sinfo.planes[0].ptr;
+			uint32_t *ptr = (uint32_t *)sinfo.planes[0].ptr;
 			switch(info->pImageIndices[i]) {
 				case 0:
 					color = 0xFFFF0000;

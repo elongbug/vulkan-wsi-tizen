@@ -1739,7 +1739,7 @@ get_buffer_memory_requirements(VkDevice device,
 							   VkMemoryRequirements *memory_requirements)
 {
 	NULLDRV_LOG_FUNC;
-	struct nulldrv_base *base = nulldrv_base((void*)buffer);
+	struct nulldrv_base *base = nulldrv_base((void*)(uintptr_t)buffer);
 
 	base->get_memory_requirements(base, memory_requirements);
 }
@@ -1750,7 +1750,7 @@ get_image_memory_requirements(VkDevice device,
 							  VkMemoryRequirements *memory_requirements)
 {
 	NULLDRV_LOG_FUNC;
-	struct nulldrv_base *base = nulldrv_base((void*)image);
+	struct nulldrv_base *base = nulldrv_base((void*)(uintptr_t)image);
 
 	base->get_memory_requirements(base, memory_requirements);
 }
@@ -1825,7 +1825,7 @@ create_pipeline_cache(VkDevice device,
 	if (!pipeline_cache)
 		return VK_ERROR_OUT_OF_HOST_MEMORY;
 
-	*cache = (VkPipelineCache) pipeline_cache;
+	*cache = (VkPipelineCache)(uintptr_t)pipeline_cache;
 
 	return VK_SUCCESS;
 }
@@ -1998,7 +1998,7 @@ create_shader_module(VkDevice device,
 	if (!shader_module)
 		return VK_ERROR_OUT_OF_HOST_MEMORY;
 
-	*module = (VkShaderModule) shader_module;
+	*module = (VkShaderModule)(uintptr_t)shader_module;
 
 	return VK_SUCCESS;
 }
@@ -2518,7 +2518,7 @@ vk_create_presentable_image(VkDevice device, const VkImageCreateInfo *info, tbm_
 	struct nulldrv_img *img;
 
 	if (nulldrv_img_create(dev, surface, info, false, &img) == VK_SUCCESS)
-		return (VkImage)img;
+		return (VkImage)(uintptr_t)img;
 
-	return NULL;
+	return (uintptr_t)NULL;
 }
