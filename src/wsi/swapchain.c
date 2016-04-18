@@ -198,6 +198,7 @@ vk_AcquireNextImageKHR(VkDevice			 device,
 
 	for (i = 0; i < chain->buffer_count; i++) {
 		if (next == chain->buffers[i].tbm) {
+			VK_DEBUG("%s, tbm_surface: %p, index: %d\n", __func__, next, i);
 			*image_index = i;
 			return VK_SUCCESS;
 		}
@@ -213,8 +214,43 @@ vk_QueuePresentKHR(VkQueue					 queue,
 	uint32_t i;
 
 	for (i = 0; i < info->swapchainCount; i++) {
+#if 1 /* TODO: later remove this code section, it is needed just for Swapchaing debugging */
 		tpl_result_t	 res;
+		tbm_surface_h tbm;
+		tbm_surface_info_s sinfo;
+		int map_ret;
+		uint32_t color, k;
+#endif
 		vk_swapchain_t	*chain = (vk_swapchain_t *)info->pSwapchains[i];
+
+#if 1 /* TODO: later remove this code section, it is needed just for Swapchaing debugging */
+		VK_DEBUG("%s, tbm_surface: %p, index: %d\n", __func__,
+				 chain->buffers[info->pImageIndices[i]].tbm, info->pImageIndices[i]);
+
+		tbm = chain->buffers[info->pImageIndices[i]].tbm;
+
+		map_ret = tbm_surface_map(tbm, TBM_SURF_OPTION_WRITE|TBM_SURF_OPTION_READ, &sinfo);
+		if (map_ret == TBM_SURFACE_ERROR_NONE) {
+			uint32_t *ptr = sinfo.planes[0].ptr;
+			switch(info->pImageIndices[i]) {
+				case 0:
+					color = 0xFFFF0000;
+					break;
+				case 1:
+					color = 0xFF00FF00;
+					break;
+				case 2:
+					color = 0xFF0000FF;
+					break;
+			}
+			for (k = 0; k < sinfo.planes[0].size; k += 4) {
+				*ptr++ = color;
+			}
+			tbm_surface_unmap(tbm);
+		} else {
+			VK_DEBUG("%s, tbm_surface_map failed\n", __func__);
+		}
+#endif
 
 		res = tpl_surface_enqueue_buffer(chain->tpl_surface,
 										 chain->buffers[info->pImageIndices[i]].tbm);
