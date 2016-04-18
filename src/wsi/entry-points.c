@@ -43,7 +43,7 @@ struct vk_entry {
 };
 
 static const vk_entry_t	entry_points[] = {
-	VK_ENTRY_POINT(EnumerateInstanceExtensionProperties, INSTANCE),
+	VK_ENTRY_POINT(EnumerateInstanceExtensionProperties, GLOBAL),
 	VK_ENTRY_POINT(EnumerateDeviceExtensionProperties, INSTANCE),
 	VK_ENTRY_POINT(GetPhysicalDeviceSurfaceSupportKHR, INSTANCE),
 	VK_ENTRY_POINT(GetPhysicalDeviceSurfaceCapabilitiesKHR, INSTANCE),
