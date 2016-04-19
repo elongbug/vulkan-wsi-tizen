@@ -46,6 +46,7 @@
 #include <stdbool.h>
 #include <assert.h>
 #include <signal.h>
+#include <unistd.h>
 
 #ifdef _WIN32
 #pragma comment(linker, "/subsystem:windows")
@@ -1644,18 +1645,21 @@ static void demo_run(struct demo *demo) {
         demo->curFrame++;
         if (demo->frameCount != INT32_MAX && demo->curFrame == demo->frameCount)
             demo->quit = true;
+		sleep(1);
     }
 }
 
 static void
 handle_ping(void *data, struct wl_shell_surface *shell_surface,
             uint32_t serial) {
+	printf("%s\n", __func__);
 	wl_shell_surface_pong(shell_surface, serial);
 }
 
 static void
 handle_configure(void *data, struct wl_shell_surface *shell_surface,
                  uint32_t edges, int32_t width, int32_t height) {
+	printf("%s, (%d, %d)\n", __func__, width, height);
 }
 
 static void
@@ -2315,8 +2319,8 @@ static void demo_init(struct demo *demo, const int argc, const char *argv[])
     demo_init_connection(demo);
     demo_init_vk(demo);
 
-    demo->width = 300;
-    demo->height = 300;
+    demo->width = 1440;
+    demo->height = 2560;
     demo->depthStencil = 1.0;
     demo->depthIncrement = -0.01f;
 }

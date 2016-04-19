@@ -49,7 +49,7 @@ vk_GetPhysicalDeviceSurfaceCapabilitiesKHR(VkPhysicalDevice			 pdev,
 										   VkSurfaceKHR				 surface,
 										   VkSurfaceCapabilitiesKHR	*caps)
 {
-	VkIcdSurfaceWayland	*sfc = (VkIcdSurfaceWayland *)surface;
+	VkIcdSurfaceWayland	*sfc = (VkIcdSurfaceWayland *)(uintptr_t)surface;
 	tpl_display_t		*display;
 
 	VK_CHECK(sfc->base.platform == VK_ICD_WSI_PLATFORM_WAYLAND, return VK_ERROR_DEVICE_LOST,
