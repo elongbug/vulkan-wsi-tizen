@@ -51,6 +51,8 @@ vk_GetPhysicalDeviceSurfaceCapabilitiesKHR(VkPhysicalDevice			 pdev,
 {
 	VkIcdSurfaceWayland	*sfc = (VkIcdSurfaceWayland *)(uintptr_t)surface;
 	tpl_display_t		*display;
+	int min, max;
+	tpl_result_t res;
 
 	VK_CHECK(sfc->base.platform == VK_ICD_WSI_PLATFORM_WAYLAND, return VK_ERROR_DEVICE_LOST,
 			 "Not supported platform surface.\n");
@@ -58,15 +60,13 @@ vk_GetPhysicalDeviceSurfaceCapabilitiesKHR(VkPhysicalDevice			 pdev,
 	display = vk_get_tpl_display(sfc->display);
 	VK_CHECK(display, return VK_ERROR_DEVICE_LOST, "vk_get_tpl_display() failed.\n");
 
-#if 0
-	res = tpl_surface_query_supported_buffer_count(sfc->tpl.surface, &min, &max);
+	res = tpl_display_query_supported_buffer_count_from_native_window(display, sfc->surface, &min, &max);
 	VK_CHECK(res == TPL_ERROR_NONE, return VK_ERROR_DEVICE_LOST,
-			 "tpl_surface_query_supported_buffer_count() failed.\n");
-#endif
+			 "tpl_display_query_native_window_supported_buffer_count() failed.\n");
 
 	/* TODO: Hard-coded. */
-	caps->minImageCount = 3;
-	caps->maxImageCount = 3;
+	caps->minImageCount = min;
+	caps->maxImageCount = max;
 
 	caps->currentExtent.width = -1;
 	caps->currentExtent.height = -1;
