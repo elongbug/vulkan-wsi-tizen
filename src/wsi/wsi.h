@@ -27,8 +27,8 @@
 
 #include <config.h>
 #include <vulkan/vulkan.h>
+#include "vulkan-wsi-tizen.h"
 #include <stdbool.h>
-#include <vulkan/vk_icd.h>
 #include <utils.h>
 #include <tpl.h>
 
@@ -81,7 +81,8 @@ PFN_vkVoidFunction
 vk_icd_get_proc_addr(VkInstance instance, const char *name);
 
 VkImage
-vk_icd_create_presentable_image(VkDevice, const VkImageCreateInfo *, tbm_surface_h);
+vk_icd_create_presentable_image(VkDevice device, const VkImageCreateInfo *info,
+								tbm_surface_h buffer);
 
 /* Entry point proto types. */
 VKAPI_ATTR VkResult VKAPI_CALL

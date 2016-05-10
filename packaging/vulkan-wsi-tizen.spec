@@ -26,8 +26,16 @@ Summary:	Vulkan sample
 Group:		Graphics & UI Framework/Hardware Adaptation
 Requires:	%{name} = %{version}-%{release}
 
+%package devel
+Summary:	Development package for tizen vulkan driver
+Group:		Graphics & UI Framework/Hardware Adaptation
+Requires:	%{name} = %{version}-%{release}
+
 %description samples
 Vulkan WSI (Window System Integration) sample with null-driver for Test
+
+%description devel
+Development packages for tizen vulkan driver
 
 %prep
 %setup -q
@@ -55,3 +63,7 @@ cp %{_builddir}/%{buildsubdir}/samples/vulkaninfo %{buildroot}/%{_bindir}
 %{_libdir}/vulkan/null-driver.so
 %{_bindir}/tri
 %{_bindir}/vulkaninfo
+
+%files devel
+%defattr(-,root,root,-)
+%{_includedir}/vulkan/vulkan-wsi-tizen.h
