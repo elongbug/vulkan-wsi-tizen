@@ -29,6 +29,7 @@
 #include <vulkan/vulkan.h>
 #include "vulkan-wsi-tizen.h"
 #include <stdbool.h>
+#include <vulkan/vk_icd.h>
 #include <utils.h>
 #include <tpl.h>
 
