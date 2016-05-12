@@ -2521,5 +2521,5 @@ vk_create_presentable_image(VkDevice device, const VkImageCreateInfo *info, tbm_
 	if (nulldrv_img_create(dev, surface, info, false, &img) == VK_SUCCESS)
 		return (VkImage)(uintptr_t)img;
 
-	return (uintptr_t)NULL;
+	return (VkImage)(uintptr_t)NULL;
 }
