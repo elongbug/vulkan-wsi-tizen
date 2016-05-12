@@ -85,6 +85,15 @@ VkImage
 vk_icd_create_presentable_image(VkDevice device, const VkImageCreateInfo *info,
 								tbm_surface_h buffer);
 
+VkBool32
+vk_icd_signal_semaphore(VkSemaphore semaphore);
+
+VkBool32
+vk_icd_wait_for_semaphores(uint32_t count, VkSemaphore *semaphores);
+
+VkBool32
+vk_icd_signal_fence(VkFence fence);
+
 /* Entry point proto types. */
 VKAPI_ATTR VkResult VKAPI_CALL
 vk_GetPhysicalDeviceSurfaceSupportKHR(VkPhysicalDevice pdev, uint32_t queue_family_index,

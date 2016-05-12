@@ -128,6 +128,24 @@ vk_icd_create_presentable_image(VkDevice				 device,
 	return icd.create_presentable_image(device, info, surface);
 }
 
+VkBool32
+vk_icd_signal_semaphore(VkSemaphore semaphore)
+{
+	return icd.signal_semaphore(semaphore);
+}
+
+VkBool32
+vk_icd_wait_for_semaphores(uint32_t count, VkSemaphore *semaphores)
+{
+	return icd.wait_for_semaphores(count, semaphores);
+}
+
+VkBool32
+vk_icd_signal_fence(VkFence fence)
+{
+	return icd.signal_fence(fence);
+}
+
 VKAPI_ATTR VkResult VKAPI_CALL
 vk_EnumerateInstanceExtensionProperties(const char				*layer_name,
 										uint32_t				*count,
