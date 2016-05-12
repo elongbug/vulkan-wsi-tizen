@@ -5,6 +5,7 @@ AM_CFLAGS = $(GCC_CFLAGS)
 
 null_driver_la_CFLAGS = $(AM_CFLAGS) -I$(top_srcdir)/include	\
 						-I$(top_srcdir)/src/utils				\
+						-I$(top_srcdir)/src/wsi					\
 						-fvisibility=hidden
 
 null_driver_la_LDFLAGS = -module -avoid-version

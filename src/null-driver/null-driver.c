@@ -34,6 +34,7 @@
 #include <string.h>
 #include <vulkan/vk_icd.h>
 #include <utils.h>
+#include <vulkan-wsi-tizen.h>
 
 #if 0
 #include <stdio.h>
@@ -2522,4 +2523,22 @@ vk_create_presentable_image(VkDevice device, const VkImageCreateInfo *info, tbm_
 		return (VkImage)(uintptr_t)img;
 
 	return (VkImage)(uintptr_t)NULL;
+}
+
+VkBool32
+vk_signal_semaphore(VkSemaphore semaphore)
+{
+	return VK_TRUE;
+}
+
+VkBool32
+vk_wait_for_semaphores(uint32_t count, VkSemaphore *semaphores)
+{
+	return VK_TRUE;
+}
+
+VkBool32
+vk_signal_fence(VkFence fence)
+{
+	return VK_TRUE;
 }
