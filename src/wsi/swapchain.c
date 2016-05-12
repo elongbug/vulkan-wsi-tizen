@@ -224,6 +224,8 @@ vk_QueuePresentKHR(VkQueue					 queue,
 {
 	uint32_t i;
 
+	vk_icd_wait_for_semaphores(info->waitSemaphoreCount, info->pWaitSemaphores);
+
 	for (i = 0; i < info->swapchainCount; i++) {
 		tpl_result_t res;
 		vk_swapchain_t	*chain = (vk_swapchain_t *)(uintptr_t)info->pSwapchains[i];
