@@ -40,7 +40,12 @@ struct vk_icd {
 	VkExtensionProperties	*global_extensions;
 
 	/* WSI-ICD interface. */
-	VkImage	(*create_presentable_image)(VkDevice, const VkImageCreateInfo *, tbm_surface_h);
+	VkImage	(*create_presentable_image)(VkDevice device, const VkImageCreateInfo *info,
+										tbm_surface_h buffer);
+	VkBool32 (*signal_semaphore)(VkSemaphore semaphore);
+	VkBool32 (*wait_for_semaphores)(uint32_t count, VkSemaphore *semaphores);
+	VkBool32 (*signal_fence)(VkFence fence);
+
 };
 
 static vk_icd_t	icd;
@@ -96,7 +101,10 @@ icd_init(void)
 
 	icd.global_extension_count = count + ARRAY_LENGTH(global_extensions);
 
-	icd.create_presentable_image = dlsym(icd.lib, "vk_create_presentable_image");
+	icd.create_presentable_image	= dlsym(icd.lib, "vk_create_presentable_image");
+	icd.signal_semaphore			= dlsym(icd.lib, "vk_signal_semaphore");
+	icd.wait_for_semaphores			= dlsym(icd.lib, "vk_wait_for_semaphores");
+	icd.signal_fence				= dlsym(icd.lib, "vk_signal_fence");
 }
 
 static void __attribute__((destructor))
