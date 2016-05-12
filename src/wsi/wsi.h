@@ -89,7 +89,7 @@ VkBool32
 vk_icd_signal_semaphore(VkSemaphore semaphore);
 
 VkBool32
-vk_icd_wait_for_semaphores(uint32_t count, VkSemaphore *semaphores);
+vk_icd_wait_for_semaphores(uint32_t count, const VkSemaphore *semaphores);
 
 VkBool32
 vk_icd_signal_fence(VkFence fence);

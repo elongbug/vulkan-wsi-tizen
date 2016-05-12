@@ -2532,7 +2532,7 @@ vk_signal_semaphore(VkSemaphore semaphore)
 }
 
 VkBool32
-vk_wait_for_semaphores(uint32_t count, VkSemaphore *semaphores)
+vk_wait_for_semaphores(uint32_t count, const VkSemaphore *semaphores)
 {
 	return VK_TRUE;
 }

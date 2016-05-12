@@ -43,7 +43,7 @@ struct vk_icd {
 	VkImage	(*create_presentable_image)(VkDevice device, const VkImageCreateInfo *info,
 										tbm_surface_h buffer);
 	VkBool32 (*signal_semaphore)(VkSemaphore semaphore);
-	VkBool32 (*wait_for_semaphores)(uint32_t count, VkSemaphore *semaphores);
+	VkBool32 (*wait_for_semaphores)(uint32_t count, const VkSemaphore *semaphores);
 	VkBool32 (*signal_fence)(VkFence fence);
 
 };
@@ -135,7 +135,7 @@ vk_icd_signal_semaphore(VkSemaphore semaphore)
 }
 
 VkBool32
-vk_icd_wait_for_semaphores(uint32_t count, VkSemaphore *semaphores)
+vk_icd_wait_for_semaphores(uint32_t count, const VkSemaphore *semaphores)
 {
 	return icd.wait_for_semaphores(count, semaphores);
 }
