@@ -200,6 +200,17 @@ vk_AcquireNextImageKHR(VkDevice			 device,
 		if (next == chain->buffers[i].tbm) {
 			VK_DEBUG("%s, tbm_surface: %p, index: %d\n", __func__, next, i);
 			*image_index = i;
+
+			/* TODO: We can do optimization here by returning buffer index immediatly despite the
+			 * buffer is not released yet. The fence or semaphore will be signaled when
+			 * wl_buffer.release actually arrives. */
+
+			if (fence != VK_NULL_HANDLE)
+				vk_icd_signal_fence(fence);
+
+			if (semaphore != VK_NULL_HANDLE)
+				vk_icd_signal_semaphore(semaphore);
+
 			return VK_SUCCESS;
 		}
 	}
