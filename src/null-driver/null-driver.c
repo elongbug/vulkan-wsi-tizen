@@ -2525,19 +2525,19 @@ vk_create_presentable_image(VkDevice device, const VkImageCreateInfo *info, tbm_
 	return (VkImage)(uintptr_t)NULL;
 }
 
-VkBool32
+VK_EXPORT VkBool32
 vk_signal_semaphore(VkSemaphore semaphore)
 {
 	return VK_TRUE;
 }
 
-VkBool32
+VK_EXPORT VkBool32
 vk_wait_for_semaphores(uint32_t count, const VkSemaphore *semaphores)
 {
 	return VK_TRUE;
 }
 
-VkBool32
+VK_EXPORT VkBool32
 vk_signal_fence(VkFence fence)
 {
 	return VK_TRUE;
