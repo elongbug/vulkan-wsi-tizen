@@ -68,6 +68,9 @@
 
 #define VK_ASSERT(exp)	assert(exp)
 
+#define vk_container_of(ptr, sample, member)									\
+	(__typeof__(sample))((char *)(ptr) - offsetof(__typeof__(*sample), member))
+
 typedef VkBool32	vk_bool_t;
 
 void
