@@ -36,6 +36,27 @@
 typedef struct vk_surface	vk_surface_t;
 typedef struct vk_swapchain	vk_swapchain_t;
 typedef struct vk_buffer	vk_buffer_t;
+typedef struct vk_icd		vk_icd_t;
+
+struct vk_icd {
+	void	*lib;
+
+	PFN_vkGetInstanceProcAddr	 				get_proc_addr;
+	PFN_vkEnumerateDeviceExtensionProperties	enum_dev_exts;
+
+	uint32_t				 instance_extension_count;
+	VkExtensionProperties	*instance_extensions;
+
+	/* WSI-ICD interface. */
+	VkImage	(*create_presentable_image)(VkDevice device, const VkImageCreateInfo *info,
+										tbm_surface_h buffer);
+	VkBool32 (*signal_semaphore)(VkSemaphore semaphore);
+	VkBool32 (*wait_for_semaphores)(uint32_t count, const VkSemaphore *semaphores);
+	VkBool32 (*signal_fence)(VkFence fence);
+};
+
+vk_icd_t *
+vk_get_icd(void);
 
 struct vk_buffer {
 	tbm_surface_h	tbm;
@@ -52,9 +73,6 @@ struct vk_swapchain {
 	uint32_t				 buffer_count;
 	vk_buffer_t				*buffers;
 };
-
-VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL
-vk_icdGetInstanceProcAddr(VkInstance instance, const char *name);
 
 const VkAllocationCallbacks *
 vk_get_allocator(void *parent, const VkAllocationCallbacks *allocator);
@@ -78,23 +96,10 @@ vk_get_tpl_display(tpl_handle_t native_dpy)
 	return display;
 };
 
-PFN_vkVoidFunction
-vk_icd_get_proc_addr(VkInstance instance, const char *name);
-
-VkImage
-vk_icd_create_presentable_image(VkDevice device, const VkImageCreateInfo *info,
-								tbm_surface_h buffer);
-
-VkBool32
-vk_icd_signal_semaphore(VkSemaphore semaphore);
-
-VkBool32
-vk_icd_wait_for_semaphores(uint32_t count, const VkSemaphore *semaphores);
-
-VkBool32
-vk_icd_signal_fence(VkFence fence);
-
 /* Entry point proto types. */
+VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL
+vk_icdGetInstanceProcAddr(VkInstance instance, const char *name);
+
 VKAPI_ATTR VkResult VKAPI_CALL
 vk_GetPhysicalDeviceSurfaceSupportKHR(VkPhysicalDevice pdev, uint32_t queue_family_index,
 									  VkSurfaceKHR surface, VkBool32 *supported);

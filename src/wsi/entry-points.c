@@ -84,6 +84,7 @@ get_entry_point(const char *name)
 VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL
 vk_GetInstanceProcAddr(VkInstance instance, const char *name)
 {
+	vk_icd_t					*icd = vk_get_icd();
 	const vk_entry_t			*entry = get_entry_point(name);
 	PFN_vkGetInstanceProcAddr	 gipa;
 
@@ -106,7 +107,7 @@ vk_GetInstanceProcAddr(VkInstance instance, const char *name)
 	}
 
 	/* TODO: Avoid getting GIPA on the fly. */
-	gipa = (PFN_vkGetInstanceProcAddr)vk_icd_get_proc_addr(instance, "vkGetInstanceProcAddr");
+	gipa = (PFN_vkGetInstanceProcAddr)icd->get_proc_addr(instance, "vkGetInstanceProcAddr");
 
 	return gipa(instance, name);
 }
@@ -114,6 +115,7 @@ vk_GetInstanceProcAddr(VkInstance instance, const char *name)
 VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL
 vk_GetDeviceProcAddr(VkDevice device, const char *name)
 {
+	vk_icd_t				*icd = vk_get_icd();
 	const vk_entry_t		*entry = get_entry_point(name);
 	PFN_vkGetDeviceProcAddr	 gdpa;
 
@@ -128,7 +130,7 @@ vk_GetDeviceProcAddr(VkDevice device, const char *name)
 	}
 
 	/* TODO: We are trying to get the most specific device functions here. */
-	gdpa = (PFN_vkGetDeviceProcAddr)vk_icd_get_proc_addr(NULL, "vkGetDeviceProcAddr");
+	gdpa = (PFN_vkGetDeviceProcAddr)icd->get_proc_addr(NULL, "vkGetDeviceProcAddr");
 	gdpa = (PFN_vkGetDeviceProcAddr)gdpa(device, "vkGetDeviceProcAddr");
 
 	return gdpa(device, name);
@@ -138,10 +140,11 @@ vk_GetDeviceProcAddr(VkDevice device, const char *name)
 VK_EXPORT VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL
 vk_icdGetInstanceProcAddr(VkInstance instance, const char *name)
 {
-	const vk_entry_t *entry = get_entry_point(name);
+	vk_icd_t			*icd = vk_get_icd();
+	const vk_entry_t	*entry = get_entry_point(name);
 
 	if (entry)
 		return entry->func;
 
-	return vk_icd_get_proc_addr(instance, name);
+	return icd->get_proc_addr(instance, name);
 }

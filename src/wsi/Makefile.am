@@ -21,7 +21,8 @@ vulkan_wsi_tizen_la_SOURCES = wsi.h				\
 							  swapchain.c		\
 							  display.c			\
 							  allocator.c		\
-							  icd.c
+							  icd.c				\
+							  extensions.c
 
 manifestdir = /etc/vulkan/icd.d
 manifest_DATA = vulkan-wsi-tizen.json

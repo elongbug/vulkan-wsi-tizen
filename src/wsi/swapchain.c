@@ -31,6 +31,7 @@ vk_CreateSwapchainKHR(VkDevice							 device,
 					  const VkAllocationCallbacks		*allocator,
 					  VkSwapchainKHR					*swapchain)
 {
+	vk_icd_t			*icd = vk_get_icd();
 	vk_swapchain_t		*chain;
 	tbm_format			 format;
 	tpl_result_t		 res;
@@ -103,7 +104,7 @@ vk_CreateSwapchainKHR(VkDevice							 device,
 		};
 
 		chain->buffers[i].tbm = buffers[i];
-		chain->buffers[i].image = vk_icd_create_presentable_image(device, &image_info, buffers[i]);
+		chain->buffers[i].image = icd->create_presentable_image(device, &image_info, buffers[i]);
 	}
 
 	chain->buffer_count = buffer_count;
@@ -187,11 +188,12 @@ vk_AcquireNextImageKHR(VkDevice			 device,
 					   VkFence			 fence,
 					   uint32_t			*image_index)
 {
-	/* TODO: apply timeout, semaphore, fence */
-
+	vk_icd_t		*icd = vk_get_icd();
 	uint32_t		 i;
 	tbm_surface_h	 next;
 	vk_swapchain_t	*chain = (vk_swapchain_t *)(uintptr_t)swapchain;
+
+	/* TODO: timeout */
 
 	next = tpl_surface_dequeue_buffer(chain->tpl_surface);
 	VK_CHECK(next, return VK_ERROR_SURFACE_LOST_KHR, "tpl_surface_dequeue_buffers() failed\n.");
@@ -206,10 +208,10 @@ vk_AcquireNextImageKHR(VkDevice			 device,
 			 * wl_buffer.release actually arrives. */
 
 			if (fence != VK_NULL_HANDLE)
-				vk_icd_signal_fence(fence);
+				icd->signal_fence(fence);
 
 			if (semaphore != VK_NULL_HANDLE)
-				vk_icd_signal_semaphore(semaphore);
+				icd->signal_semaphore(semaphore);
 
 			return VK_SUCCESS;
 		}
@@ -222,9 +224,10 @@ VKAPI_ATTR VkResult VKAPI_CALL
 vk_QueuePresentKHR(VkQueue					 queue,
 				   const VkPresentInfoKHR	*info)
 {
-	uint32_t i;
+	vk_icd_t	*icd = vk_get_icd();
+	uint32_t	 i;
 
-	vk_icd_wait_for_semaphores(info->waitSemaphoreCount, info->pWaitSemaphores);
+	icd->wait_for_semaphores(info->waitSemaphoreCount, info->pWaitSemaphores);
 
 	for (i = 0; i < info->swapchainCount; i++) {
 		tpl_result_t res;
