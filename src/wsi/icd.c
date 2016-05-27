@@ -67,10 +67,8 @@ module_init(void)
 	VK_CHECK(icd.enum_dev_exts, return, "vkEnumerateDeviceExtensionProperties() not present.\n");
 
 	/* Retrieve WSI-ICD interface functions. */
-	icd.create_presentable_image	= dlsym(icd.lib, "vk_create_presentable_image");
-	icd.signal_semaphore			= dlsym(icd.lib, "vk_signal_semaphore");
-	icd.wait_for_semaphores			= dlsym(icd.lib, "vk_wait_for_semaphores");
-	icd.signal_fence				= dlsym(icd.lib, "vk_signal_fence");
+	icd.create_presentable_image =
+		(void *)icd.get_proc_addr(NULL,	"vkCreateImageFromNativeBufferTIZEN");
 
 	/* Initialize instance extensions. */
 	enum_inst_exts = (void *)icd.get_proc_addr(NULL, "vkEnumerateInstanceExtensionProperties");

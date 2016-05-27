@@ -104,7 +104,8 @@ vk_CreateSwapchainKHR(VkDevice							 device,
 		};
 
 		chain->buffers[i].tbm = buffers[i];
-		chain->buffers[i].image = icd->create_presentable_image(device, &image_info, buffers[i]);
+		icd->create_presentable_image(device, buffers[i], &image_info, allocator,
+									  &chain->buffers[i].image);
 	}
 
 	chain->buffer_count = buffer_count;
@@ -207,12 +208,6 @@ vk_AcquireNextImageKHR(VkDevice			 device,
 			 * buffer is not released yet. The fence or semaphore will be signaled when
 			 * wl_buffer.release actually arrives. */
 
-			if (fence != VK_NULL_HANDLE)
-				icd->signal_fence(fence);
-
-			if (semaphore != VK_NULL_HANDLE)
-				icd->signal_semaphore(semaphore);
-
 			return VK_SUCCESS;
 		}
 	}
@@ -226,8 +221,6 @@ vk_QueuePresentKHR(VkQueue					 queue,
 {
 	vk_icd_t	*icd = vk_get_icd();
 	uint32_t	 i;
-
-	icd->wait_for_semaphores(info->waitSemaphoreCount, info->pWaitSemaphores);
 
 	for (i = 0; i < info->swapchainCount; i++) {
 		tpl_result_t res;

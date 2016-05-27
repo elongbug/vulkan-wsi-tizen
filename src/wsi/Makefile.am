@@ -4,7 +4,7 @@ moduledir = $(libdir)/vulkan
 AM_CFLAGS = $(GCC_CFLAGS)
 
 vulkan_wsi_tizen_includedir = $(includedir)/vulkan
-vulkan_wsi_tizen_include_HEADERS = vulkan-wsi-tizen.h
+vulkan_wsi_tizen_include_HEADERS = $(top_srcdir)/include/vulkan/vk_tizen.h
 
 vulkan_wsi_tizen_la_CFLAGS = $(AM_CFLAGS) -I$(top_srcdir)/include	\
 							 -I$(top_srcdir)/src/utils				\

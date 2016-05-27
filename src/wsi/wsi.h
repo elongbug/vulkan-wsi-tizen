@@ -27,7 +27,7 @@
 
 #include <config.h>
 #include <vulkan/vulkan.h>
-#include "vulkan-wsi-tizen.h"
+#include <vulkan/vk_tizen.h>
 #include <stdbool.h>
 #include <vulkan/vk_icd.h>
 #include <utils.h>
@@ -48,11 +48,7 @@ struct vk_icd {
 	VkExtensionProperties	*instance_extensions;
 
 	/* WSI-ICD interface. */
-	VkImage	(*create_presentable_image)(VkDevice device, const VkImageCreateInfo *info,
-										tbm_surface_h buffer);
-	VkBool32 (*signal_semaphore)(VkSemaphore semaphore);
-	VkBool32 (*wait_for_semaphores)(uint32_t count, const VkSemaphore *semaphores);
-	VkBool32 (*signal_fence)(VkFence fence);
+	PFN_vkCreateImageFromNativeBufferTIZEN	create_presentable_image;
 };
 
 vk_icd_t *

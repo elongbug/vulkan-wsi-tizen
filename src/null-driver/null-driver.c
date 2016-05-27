@@ -34,7 +34,7 @@
 #include <string.h>
 #include <vulkan/vk_icd.h>
 #include <utils.h>
-#include <vulkan-wsi-tizen.h>
+#include <vulkan/vk_tizen.h>
 
 #if 0
 #include <stdio.h>
@@ -2284,9 +2284,22 @@ get_physical_device_image_format_properties(VkPhysicalDevice dev,
 	return VK_SUCCESS;
 }
 
+static VKAPI_ATTR VkResult VKAPI_CALL
+create_image_from_native_buffer_TIZEN(VkDevice						device,
+									  tbm_surface_h					surface,
+									  const VkImageCreateInfo *		info,
+									  const VkAllocationCallbacks *	allocator,
+									  VkImage *						image)
+{
+	NULLDRV_LOG_FUNC;
+	struct nulldrv_dev *dev = nulldrv_dev(device);
+
+	return nulldrv_img_create(dev, surface, info, false,
+							  (struct nulldrv_img **) image);
+}
 struct nulldrv_entry
 {
-	const char 	*name;
+	const char	*name;
 	void		*func;
 };
 
@@ -2337,6 +2350,7 @@ static const struct nulldrv_entry device_funcs[] =
 	{ "vkCreateBufferView", create_buffer_view },
 	{ "vkDestroyBufferView", destroy_buffer_view },
 	{ "vkCreateImage", create_image },
+	{ "vkCreateImageFromNativeBufferTIZEN", create_image_from_native_buffer_TIZEN },
 	{ "vkDestroyImage", destroy_image },
 	{ "vkGetImageSubresourceLayout", get_image_subresource_layout },
 	{ "vkCreateImageView", create_image_view },
@@ -2510,35 +2524,4 @@ vk_icdGetInstanceProcAddr(VkInstance instance, const char *name)
 	}
 
 	return NULL;
-}
-
-VK_EXPORT VkImage
-vk_create_presentable_image(VkDevice device, const VkImageCreateInfo *info, tbm_surface_h surface)
-{
-	NULLDRV_LOG_FUNC;
-	struct nulldrv_dev *dev = nulldrv_dev(device);
-	struct nulldrv_img *img;
-
-	if (nulldrv_img_create(dev, surface, info, false, &img) == VK_SUCCESS)
-		return (VkImage)(uintptr_t)img;
-
-	return (VkImage)(uintptr_t)NULL;
-}
-
-VK_EXPORT VkBool32
-vk_signal_semaphore(VkSemaphore semaphore)
-{
-	return VK_TRUE;
-}
-
-VK_EXPORT VkBool32
-vk_wait_for_semaphores(uint32_t count, const VkSemaphore *semaphores)
-{
-	return VK_TRUE;
-}
-
-VK_EXPORT VkBool32
-vk_signal_fence(VkFence fence)
-{
-	return VK_TRUE;
 }
