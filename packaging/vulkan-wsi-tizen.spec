@@ -66,4 +66,4 @@ cp %{_builddir}/%{buildsubdir}/samples/vulkaninfo %{buildroot}/%{_bindir}
 
 %files devel
 %defattr(-,root,root,-)
-%{_includedir}/vulkan/vulkan-wsi-tizen.h
+%{_includedir}/vulkan/vk_tizen.h
