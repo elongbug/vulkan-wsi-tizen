@@ -25,6 +25,65 @@
 #include "wsi.h"
 #include <string.h>
 
+#define TBM_FORMAT_0	0
+
+#define RETURN_FORMAT(comp, opaque, pre, post, inherit)					\
+	do {																\
+		if (comp == VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR)					\
+			return TBM_FORMAT_##opaque;									\
+		else if (comp == VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR)		\
+			return TBM_FORMAT_##pre;									\
+		else if (comp == VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR)	\
+			return TBM_FORMAT_##post;									\
+		else if (comp == VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR)			\
+			return TBM_FORMAT_##inherit;								\
+		else															\
+			return 0;													\
+	} while (0)
+
+static inline tbm_format
+get_tbm_format(VkFormat format, VkCompositeAlphaFlagBitsKHR comp)
+{
+	switch (format) {
+	/* 4 4 4 4 */
+	case VK_FORMAT_R4G4B4A4_UNORM_PACK16:
+		RETURN_FORMAT(comp, RGBX4444, RGBA4444, 0, RGBA4444);
+	case VK_FORMAT_B4G4R4A4_UNORM_PACK16:
+		RETURN_FORMAT(comp, BGRX4444, BGRA4444, 0, BGRA4444);
+	/* 5 6 5 */
+	case VK_FORMAT_R5G6B5_UNORM_PACK16:
+		RETURN_FORMAT(comp, RGB565, RGB565, RGB565, RGB565);
+	case VK_FORMAT_B5G6R5_UNORM_PACK16:
+		RETURN_FORMAT(comp, BGR565, BGR565, BGR565, BGR565);
+	/* 5 5 5 1 */
+	case VK_FORMAT_R5G5B5A1_UNORM_PACK16:
+		RETURN_FORMAT(comp, RGBX5551, RGBA5551, 0, RGBA5551);
+	case VK_FORMAT_B5G5R5A1_UNORM_PACK16:
+		RETURN_FORMAT(comp, BGRX5551, BGRA5551, 0, BGRA5551);
+	case VK_FORMAT_A1R5G5B5_UNORM_PACK16:
+		RETURN_FORMAT(comp, XRGB1555, ARGB1555, 0, ARGB1555);
+	/* 8 8 8 */
+	case VK_FORMAT_R8G8B8_UNORM:
+		RETURN_FORMAT(comp, BGR888, BGR888, BGR888, BGR888);
+	case VK_FORMAT_B8G8R8_UNORM:
+		RETURN_FORMAT(comp, RGB888, RGB888, RGB888, RGB888);
+	/* 8 8 8 8 */
+	case VK_FORMAT_B8G8R8A8_UNORM:
+		RETURN_FORMAT(comp, XRGB8888, ARGB8888, 0, ARGB8888);
+	case VK_FORMAT_A8B8G8R8_UNORM_PACK32:
+		RETURN_FORMAT(comp, XBGR8888, ABGR8888, 0, ABGR8888);
+	/* 2 10 10 10 */
+	case VK_FORMAT_A2R10G10B10_UNORM_PACK32:
+		RETURN_FORMAT(comp, XRGB2101010, ARGB2101010, 0, ARGB2101010);
+	case VK_FORMAT_A2B10G10R10_UNORM_PACK32:
+		RETURN_FORMAT(comp, XBGR2101010, ABGR2101010, 0, ABGR2101010);
+	default:
+		break;
+	}
+
+	return 0;
+}
+
 VKAPI_ATTR VkResult VKAPI_CALL
 vk_CreateSwapchainKHR(VkDevice							 device,
 					  const VkSwapchainCreateInfoKHR	*info,
@@ -41,16 +100,8 @@ vk_CreateSwapchainKHR(VkDevice							 device,
 
 	VK_ASSERT(surface->base.platform == VK_ICD_WSI_PLATFORM_WAYLAND);
 
-	switch (info->imageFormat) {
-		case VK_FORMAT_R8G8B8_SRGB:
-			format = TBM_FORMAT_XRGB8888;
-			break;
-		case VK_FORMAT_R8G8B8A8_SRGB:
-			format = TBM_FORMAT_ARGB8888;
-			break;
-		default:
-			return VK_ERROR_SURFACE_LOST_KHR;
-	}
+	format = get_tbm_format(info->imageFormat, info->compositeAlpha);
+	VK_CHECK(format, return VK_ERROR_SURFACE_LOST_KHR, "Not supported image format.\n");
 
 	allocator = vk_get_allocator(device, allocator);
 

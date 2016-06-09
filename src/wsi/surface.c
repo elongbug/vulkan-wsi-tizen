@@ -94,9 +94,37 @@ vk_GetPhysicalDeviceSurfaceCapabilitiesKHR(VkPhysicalDevice			 pdev,
 	return VK_SUCCESS;
 }
 
-static VkSurfaceFormatKHR surface_formats[] = {
-	{ VK_FORMAT_R8G8B8_SRGB,	VK_COLORSPACE_SRGB_NONLINEAR_KHR },
-	{ VK_FORMAT_R8G8B8A8_SRGB,	VK_COLORSPACE_SRGB_NONLINEAR_KHR }
+#define FORMAT_ENTRY(tbm, vk, cs) { TBM_FORMAT_##tbm, { VK_FORMAT_##vk, VK_COLORSPACE_##cs }}
+
+static const struct {
+	tbm_format			tbm_format;
+	VkSurfaceFormatKHR	surface_format;
+} supported_formats[] = {
+	/* TODO: Workaround to make tri sample run correctly. */
+	FORMAT_ENTRY(RGBA8888,		B8G8R8A8_UNORM,				SRGB_NONLINEAR_KHR),
+
+	/* TODO: Correct map between tbm formats and vulkan formats. */
+	FORMAT_ENTRY(XRGB8888,		B8G8R8A8_UNORM,				SRGB_NONLINEAR_KHR),
+	FORMAT_ENTRY(ARGB8888,		B8G8R8A8_UNORM,				SRGB_NONLINEAR_KHR),
+	FORMAT_ENTRY(XBGR8888,		A8B8G8R8_UNORM_PACK32,		SRGB_NONLINEAR_KHR),
+	FORMAT_ENTRY(ABGR8888,		A8B8G8R8_UNORM_PACK32,		SRGB_NONLINEAR_KHR),
+	FORMAT_ENTRY(RGB888,		B8G8R8_UNORM,				SRGB_NONLINEAR_KHR),
+	FORMAT_ENTRY(BGR888,		R8G8B8_UNORM,				SRGB_NONLINEAR_KHR),
+	FORMAT_ENTRY(RGB565,		R5G6B5_UNORM_PACK16, 		SRGB_NONLINEAR_KHR),
+	FORMAT_ENTRY(BGR565,		B5G6R5_UNORM_PACK16,		SRGB_NONLINEAR_KHR),
+	FORMAT_ENTRY(RGBX4444,		R4G4B4A4_UNORM_PACK16,		SRGB_NONLINEAR_KHR),
+	FORMAT_ENTRY(RGBA4444,		R4G4B4A4_UNORM_PACK16,		SRGB_NONLINEAR_KHR),
+	FORMAT_ENTRY(BGRX4444,		B4G4R4A4_UNORM_PACK16,		SRGB_NONLINEAR_KHR),
+	FORMAT_ENTRY(BGRA4444,		B4G4R4A4_UNORM_PACK16,		SRGB_NONLINEAR_KHR),
+	FORMAT_ENTRY(ARGB1555,		A1R5G5B5_UNORM_PACK16,		SRGB_NONLINEAR_KHR),
+	FORMAT_ENTRY(XRGB1555,		A1R5G5B5_UNORM_PACK16,		SRGB_NONLINEAR_KHR),
+	FORMAT_ENTRY(RGBX5551,		R5G5B5A1_UNORM_PACK16,		SRGB_NONLINEAR_KHR),
+	FORMAT_ENTRY(RGBA5551,		R5G5B5A1_UNORM_PACK16,		SRGB_NONLINEAR_KHR),
+	FORMAT_ENTRY(BGRX5551,		B5G5R5A1_UNORM_PACK16,		SRGB_NONLINEAR_KHR),
+	FORMAT_ENTRY(BGRA5551,		B5G5R5A1_UNORM_PACK16,		SRGB_NONLINEAR_KHR),
+	FORMAT_ENTRY(XRGB2101010,	A2R10G10B10_UNORM_PACK32,	SRGB_NONLINEAR_KHR),
+	FORMAT_ENTRY(XBGR2101010,	A2B10G10R10_UNORM_PACK32,	SRGB_NONLINEAR_KHR),
+	FORMAT_ENTRY(ABGR2101010,	A2B10G10R10_UNORM_PACK32,	SRGB_NONLINEAR_KHR),
 };
 
 VKAPI_ATTR VkResult VKAPI_CALL
@@ -105,16 +133,35 @@ vk_GetPhysicalDeviceSurfaceFormatsKHR(VkPhysicalDevice		 pdev,
 									  uint32_t				*format_count,
 									  VkSurfaceFormatKHR	*formats)
 {
-	/* TODO: */
+	uint32_t			 tbm_format_count;
+	tbm_format			*tbm_formats;
+	uint32_t			 surface_format_count = 0;
+	VkSurfaceFormatKHR	 surface_formats[ARRAY_LENGTH(supported_formats)];
+	uint32_t			 i, j;
+
+	if (tbm_surface_query_formats(&tbm_formats, &tbm_format_count) != TBM_SURFACE_ERROR_NONE)
+		return VK_ERROR_DEVICE_LOST;
+
+	for (i = 0; i < ARRAY_LENGTH(supported_formats); i++) {
+		for (j = 0; j < tbm_format_count; j++) {
+			if (tbm_formats[j] == supported_formats[i].tbm_format) {
+				/* TODO Check if ICD support the format. */
+				surface_formats[surface_format_count++] = supported_formats[i].surface_format;
+				break;
+			}
+		}
+	}
+
+	free(tbm_formats);
 
 	if (formats) {
-		*format_count = MIN(*format_count, ARRAY_LENGTH(surface_formats));
+		*format_count = MIN(*format_count, surface_format_count);
 		memcpy(formats, &surface_formats[0], sizeof(VkSurfaceFormatKHR) * (*format_count));
 
-		if (*format_count < ARRAY_LENGTH(surface_formats))
+		if (*format_count < surface_format_count)
 			return VK_INCOMPLETE;
 	} else {
-		*format_count = ARRAY_LENGTH(surface_formats);
+		*format_count = surface_format_count;
 	}
 
 	return VK_SUCCESS;
