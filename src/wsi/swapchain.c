@@ -92,9 +92,9 @@ vk_CreateSwapchainKHR(VkDevice							 device,
 			VK_IMAGE_TYPE_2D,
 			info->imageFormat,
 			{ info->imageExtent.width, info->imageExtent.height, 0 },
-			0,
-			0,
-			0,
+			1, /* mip level. */
+			1, /* array layers. */
+			VK_SAMPLE_COUNT_1_BIT,
 			VK_IMAGE_TILING_LINEAR,
 			VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
 			VK_SHARING_MODE_EXCLUSIVE,
