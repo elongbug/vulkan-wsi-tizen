@@ -562,7 +562,7 @@ static void demo_draw(struct demo *demo) {
         VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
     VkSubmitInfo submit_info = {.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
                                 .pNext = NULL,
-                                .waitSemaphoreCount = 1,
+                                .waitSemaphoreCount = 0,
                                 .pWaitSemaphores = &presentCompleteSemaphore,
                                 .pWaitDstStageMask = &pipe_stage_flags,
                                 .commandBufferCount = 1,
@@ -1645,7 +1645,6 @@ static void demo_run(struct demo *demo) {
         demo->curFrame++;
         if (demo->frameCount != INT32_MAX && demo->curFrame == demo->frameCount)
             demo->quit = true;
-		sleep(1);
     }
 }
 
@@ -2073,10 +2072,12 @@ static void demo_init_vk(struct demo *demo) {
     VkPhysicalDeviceFeatures features;
     vkGetPhysicalDeviceFeatures(demo->gpu, &features);
 
+#if 0 /* Temporarily disable checking shader clip distance feature. */
     if (!features.shaderClipDistance) {
         ERR_EXIT("Required device feature `shaderClipDistance` not supported\n",
                  "GetPhysicalDeviceFeatures failure");
     }
+#endif
 
     // Graphics queue and MemMgr queue can be separate.
     // TODO: Add support for separate queues, including synchronization,
