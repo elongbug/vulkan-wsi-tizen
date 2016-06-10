@@ -144,13 +144,13 @@ vk_CreateSwapchainKHR(VkDevice							 device,
 			info->imageFormat,
 			{ info->imageExtent.width, info->imageExtent.height, 0 },
 			1, /* mip level. */
-			1, /* array layers. */
+			info->imageArrayLayers,
 			VK_SAMPLE_COUNT_1_BIT,
 			VK_IMAGE_TILING_LINEAR,
-			VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-			VK_SHARING_MODE_EXCLUSIVE,
-			0,
-			NULL,
+			info->imageUsage,
+			info->imageSharingMode,
+			info->queueFamilyIndexCount,
+			info->pQueueFamilyIndices,
 			VK_IMAGE_LAYOUT_UNDEFINED,
 		};
 
