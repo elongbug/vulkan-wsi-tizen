@@ -142,7 +142,7 @@ vk_CreateSwapchainKHR(VkDevice							 device,
 			0,
 			VK_IMAGE_TYPE_2D,
 			info->imageFormat,
-			{ info->imageExtent.width, info->imageExtent.height, 0 },
+			{ info->imageExtent.width, info->imageExtent.height, 1 },
 			1, /* mip level. */
 			info->imageArrayLayers,
 			VK_SAMPLE_COUNT_1_BIT,
