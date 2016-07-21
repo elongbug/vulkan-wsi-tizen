@@ -8,6 +8,14 @@ typedef VkResult (VKAPI_PTR *PFN_vkCreateImageFromNativeBufferTIZEN)(VkDevice de
 																	 surface, const
 																	 VkImageCreateInfo *pCreateInfo, const VkAllocationCallbacks *pAllocator, VkImage *pImage);
 
+typedef VkResult (VKAPI_PTR *PFN_vkQueueSignalReleaseImageTIZEN)
+	(VkQueue queue, uint32_t waitSemaphoreCount,
+	 const VkSemaphore *pWaitSemaphores,
+	 VkImage image, int *pNativeFenceFd);
+typedef VkResult (VKAPI_PTR *PFN_vkAcquireImageTIZEN)
+	(VkDevice device, VkImage image, int nativeFenceFd,
+	 VkSemaphore semaphore, VkFence fence);
+
 #ifndef VK_NO_PROTOTYPES
 VKAPI_ATTR VkResult VKAPI_CALL vkCreateImageFromNativeBufferTIZEN(
 	VkDevice									device,
@@ -15,6 +23,12 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateImageFromNativeBufferTIZEN(
 	const VkImageCreateInfo *					pCreateInfo,
 	const VkAllocationCallbacks *				pAllocator,
 	VkImage *									pImage);
+VKAPI_PTR VkResult vkQueueSignalReleaseImageTIZEN(VkQueue queue, uint32_t waitSemaphoreCount,
+												  const VkSemaphore *pWaitSemaphores,
+												  VkImage image, int *pNativeFenceFd);
+VKAPI_PTR VkResult vkAcquireImageTIZEN(VkDevice device, VkImage image, int nativeFenceFd,
+									   VkSemaphore semaphore, VkFence fence);
+
 #endif
 
 #endif /* VK_TIZEN_H */

@@ -49,6 +49,8 @@ struct vk_icd {
 
 	/* WSI-ICD interface. */
 	PFN_vkCreateImageFromNativeBufferTIZEN	create_presentable_image;
+	PFN_vkQueueSignalReleaseImageTIZEN		queue_signal_release_image;
+	PFN_vkAcquireImageTIZEN					acquire_image;
 };
 
 vk_icd_t *

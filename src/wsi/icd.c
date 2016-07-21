@@ -69,6 +69,15 @@ module_init(void)
 	/* Retrieve WSI-ICD interface functions. */
 	icd.create_presentable_image =
 		(void *)icd.get_proc_addr(NULL,	"vkCreateImageFromNativeBufferTIZEN");
+	VK_DEBUG("icd.create_presentable_image: %p", icd.create_presentable_image);
+
+	icd.queue_signal_release_image =
+		(void *)icd.get_proc_addr(NULL,	"vkQueueSignalReleaseImageTIZEN");
+	VK_DEBUG("icd.queue_signal_release_image: %p", icd.queue_signal_release_image);
+
+	icd.acquire_image =
+		(void *)icd.get_proc_addr(NULL,	"vkAcquireImageTIZEN");
+	VK_DEBUG("icd.acquire_image: %p", icd.acquire_image);
 
 	/* Initialize instance extensions. */
 	enum_inst_exts = (void *)icd.get_proc_addr(NULL, "vkEnumerateInstanceExtensionProperties");
