@@ -59,17 +59,46 @@ vk_EnumerateDeviceExtensionProperties(VkPhysicalDevice		 pdev,
 	vk_icd_t	*icd = vk_get_icd();
 	uint32_t	 max_ext_count, remaining, copied = 0;
 	VkResult	 result;
+	uint32_t i, j, copy_count = 0;
 
 	result = icd->enum_dev_exts(pdev, layer_name, &max_ext_count, NULL);
 	VK_CHECK(result == VK_SUCCESS, return VK_ERROR_OUT_OF_HOST_MEMORY,
 			 "vkEnumerateDeviceExtensionProperties() failed.\n");
 
-	max_ext_count += ARRAY_LENGTH(wsi_device_extensions);
-
 	if (!extensions) {
-		*count = max_ext_count;
+		/*
+		 * for CTS fail return count
+		 * loader remove duplicates extension
+		 * second called count is not same when extensions has duplicate entry
+		 */
+		VkExtensionProperties	*device_extensions =
+			vk_alloc(vk_get_allocator(NULL, NULL),
+					 max_ext_count * sizeof(VkExtensionProperties),
+					 VK_SYSTEM_ALLOCATION_SCOPE_DEVICE);
+		VK_CHECK(device_extensions, return VK_ERROR_OUT_OF_HOST_MEMORY, "malloc failed().\n");
+
+		result = icd->enum_dev_exts(pdev, layer_name, &max_ext_count, device_extensions);
+		VK_CHECK(result == VK_SUCCESS, return VK_ERROR_OUT_OF_HOST_MEMORY,
+				 "vkEnumerateDeviceExtensionProperties() failed.\n");
+
+		for (i = 0; i < ARRAY_LENGTH(wsi_device_extensions); i++) {
+			for (j = 0; j < max_ext_count; j++) {
+				if (strcmp(device_extensions[j].extensionName,
+						   wsi_device_extensions[i].extensionName) == 0) {
+					break;
+				}
+			}
+			if (j == max_ext_count)
+				copy_count++;
+		}
+		vk_free(vk_get_allocator(NULL, NULL), device_extensions);
+
+		*count = max_ext_count + copy_count;
+
 		return VK_SUCCESS;
 	}
+
+	max_ext_count += ARRAY_LENGTH(wsi_device_extensions);
 
 	/* Copy ICD extensions and WSI extensions together into the given pointer. */
 
@@ -84,8 +113,27 @@ vk_EnumerateDeviceExtensionProperties(VkPhysicalDevice		 pdev,
 
 	/* Calculate remaining extensions to copy. */
 	remaining = MIN(remaining - copied, ARRAY_LENGTH(wsi_device_extensions));
-	memcpy(extensions + copied, wsi_device_extensions, remaining * sizeof(VkExtensionProperties));
-	copied += remaining;
+
+	/* Copy non duplicate entries */
+	for (i = 0; i < ARRAY_LENGTH(wsi_device_extensions); i++) {
+		for (j = 0; j < copied; j++) {
+			if (strcmp(extensions[j].extensionName,
+					   wsi_device_extensions[i].extensionName) == 0) {
+				max_ext_count--;
+				break;
+			}
+		}
+		if (j == copied) {
+			if (copy_count < remaining) {
+				memcpy(extensions + copied + copy_count,
+					   &wsi_device_extensions[i], sizeof(VkExtensionProperties));
+				copy_count++;
+			} else {
+				break;
+			}
+		}
+	}
+	copied += copy_count;
 
 	/* Return the number of extensions copied. */
 	*count = copied;
