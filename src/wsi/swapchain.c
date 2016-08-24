@@ -247,22 +247,12 @@ vk_AcquireNextImageKHR(VkDevice			 device,
 	tbm_surface_h	 next;
 	vk_swapchain_t	*chain = (vk_swapchain_t *)(uintptr_t)swapchain;
 	int sync_fd = -1;
-	tbm_sync_fence_h sync_fence = NULL;
-	tbm_sync_error_e sync_err;
 
 	if (icd->acquire_image) {
-		next = tpl_surface_dequeue_buffer_with_sync(chain->tpl_surface, timeout, &sync_fence);
+		next = tpl_surface_dequeue_buffer_with_sync(chain->tpl_surface, timeout, &sync_fd);
 
 		if (next == NULL)
 			return VK_TIMEOUT;
-
-		if (sync_fence) {
-			sync_fd = tbm_sync_fence_export(sync_fence, &sync_err);
-			VK_DEBUG("%s, tbm_surface: %p: fence_fd: %d\n", __func__, next, sync_fd);
-			if (sync_err != TBM_SYNC_ERROR_NONE)
-				sync_fd = -1;
-			tbm_sync_fence_destroy(sync_fence);
-		}
 	} else {
 		next = tpl_surface_dequeue_buffer(chain->tpl_surface);
 		VK_CHECK(next, return VK_ERROR_SURFACE_LOST_KHR, "tpl_surface_dequeue_buffers() failed\n.");
@@ -296,27 +286,15 @@ vk_QueuePresentKHR(VkQueue					 queue,
 	for (i = 0; i < info->swapchainCount; i++) {
 		int sync_fd = -1;
 		tpl_result_t res;
-		tbm_sync_fence_h sync_fence = NULL;
-		tbm_sync_error_e sync_err;
 		vk_swapchain_t	*chain = (vk_swapchain_t *)(uintptr_t)info->pSwapchains[i];
 
 		if (icd->queue_signal_release_image)
 			icd->queue_signal_release_image(queue, info->waitSemaphoreCount, info->pWaitSemaphores,
 											chain->buffers[info->pImageIndices[i]].image, &sync_fd);
 
-		if (sync_fd != -1) {
-			sync_fence = tbm_sync_fence_import(sync_fd, &sync_err);
-			close(sync_fd);
-		}
-
-		if (sync_fence)
-			res = tpl_surface_enqueue_buffer_with_damage_and_sync(chain->tpl_surface,
-																  chain->buffers[info->pImageIndices[i]].tbm,
-																  0, NULL,
-																  sync_fence);
-		else
-			res = tpl_surface_enqueue_buffer(chain->tpl_surface,
-											 chain->buffers[info->pImageIndices[i]].tbm);
+		res = tpl_surface_enqueue_buffer_with_damage_and_sync(chain->tpl_surface,
+															  chain->buffers[info->pImageIndices[i]].tbm,
+															  0, NULL, sync_fd);
 
 		if (info->pResults != NULL)
 			info->pResults[i] = res == TPL_ERROR_NONE ? VK_SUCCESS : VK_ERROR_DEVICE_LOST;
