@@ -208,11 +208,11 @@ vk_DestroySwapchainKHR(VkDevice						 device,
 	tpl_surface_destroy_swapchain(chain->tpl_surface);
 	free(chain->buffers);
 
-	if (chain->tpl_display)
-		tpl_object_unreference((tpl_object_t *)chain->tpl_display);
-
 	if (chain->tpl_surface)
 		tpl_object_unreference((tpl_object_t *)chain->tpl_surface);
+
+	if (chain->tpl_display)
+		tpl_object_unreference((tpl_object_t *)chain->tpl_display);
 
 	vk_free(&chain->allocator, chain);
 }

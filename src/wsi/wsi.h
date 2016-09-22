@@ -89,8 +89,10 @@ static inline tpl_display_t *
 vk_get_tpl_display(tpl_handle_t native_dpy)
 {
 	tpl_display_t *display = tpl_display_create(TPL_BACKEND_WAYLAND_VULKAN_WSI, native_dpy);
-	if (display == NULL)
+	if (display == NULL) {
 		display = tpl_display_get(native_dpy);
+		tpl_object_reference((tpl_object_t *)display);
+	}
 	return display;
 };
 
