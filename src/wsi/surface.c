@@ -167,26 +167,56 @@ vk_GetPhysicalDeviceSurfaceFormatsKHR(VkPhysicalDevice		 pdev,
 	return VK_SUCCESS;
 }
 
-static VkPresentModeKHR present_modes[] = {
-	VK_PRESENT_MODE_FIFO_KHR
-};
-
 VKAPI_ATTR VkResult VKAPI_CALL
 vk_GetPhysicalDeviceSurfacePresentModesKHR(VkPhysicalDevice	 pdev,
 										   VkSurfaceKHR		 surface,
 										   uint32_t			*mode_count,
 										   VkPresentModeKHR	*modes)
 {
-	/* TODO: */
+	VkIcdSurfaceWayland	*sfc = (VkIcdSurfaceWayland *)(uintptr_t)surface;
+	tpl_display_t		*display;
+	tpl_result_t res;
+	int tpl_support_modes;
+	uint32_t support_mode_cnt = 0;
+
+	VK_CHECK(sfc->base.platform == VK_ICD_WSI_PLATFORM_WAYLAND, return VK_ERROR_DEVICE_LOST,
+			 "Not supported platform surface.\n");
+
+	display = vk_get_tpl_display(sfc->display);
+	VK_CHECK(display, return VK_ERROR_DEVICE_LOST, "vk_get_tpl_display() failed.\n");
+
+	res = tpl_display_query_supported_present_modes_from_native_window(display, sfc->surface,
+																	   &tpl_support_modes);
+	tpl_object_unreference((tpl_object_t *)display);
+	VK_CHECK(res == TPL_ERROR_NONE, return VK_ERROR_DEVICE_LOST,
+			 "tpl_display_query_native_window_supported_buffer_count() failed.\n");
+
+	if (tpl_support_modes & TPL_DISPLAY_PRESENT_MODE_MAILBOX)
+		support_mode_cnt++;
+	if (tpl_support_modes & TPL_DISPLAY_PRESENT_MODE_FIFO)
+		support_mode_cnt++;
+	if (tpl_support_modes & TPL_DISPLAY_PRESENT_MODE_IMMEDIATE)
+		support_mode_cnt++;
+	if (tpl_support_modes & TPL_DISPLAY_PRESENT_MODE_FIFO_RELAXED)
+		support_mode_cnt++;
 
 	if (modes) {
-		*mode_count = MIN(*mode_count, ARRAY_LENGTH(present_modes));
-		memcpy(modes, &present_modes[0], sizeof(VkPresentModeKHR) * (*mode_count));
+		uint32_t i = 0;
+		*mode_count = MIN(*mode_count, support_mode_cnt);
 
-		if (*mode_count < ARRAY_LENGTH(present_modes))
+		if (i < *mode_count && tpl_support_modes & TPL_DISPLAY_PRESENT_MODE_MAILBOX)
+			modes[i++] = VK_PRESENT_MODE_MAILBOX_KHR;
+		if (i < *mode_count && tpl_support_modes & TPL_DISPLAY_PRESENT_MODE_FIFO)
+			modes[i++] = VK_PRESENT_MODE_FIFO_KHR;
+		if (i < *mode_count && tpl_support_modes & TPL_DISPLAY_PRESENT_MODE_IMMEDIATE)
+			modes[i++] = VK_PRESENT_MODE_IMMEDIATE_KHR;
+		if (i < *mode_count && tpl_support_modes & TPL_DISPLAY_PRESENT_MODE_FIFO_RELAXED)
+			modes[i++] = VK_PRESENT_MODE_FIFO_RELAXED_KHR;
+
+		if (*mode_count < support_mode_cnt)
 			return VK_INCOMPLETE;
 	} else {
-		*mode_count = ARRAY_LENGTH(present_modes);
+		*mode_count = support_mode_cnt;
 	}
 
 	return VK_SUCCESS;

@@ -99,6 +99,8 @@ vk_CreateSwapchainKHR(VkDevice							 device,
 	VkIcdSurfaceWayland	*surface = (VkIcdSurfaceWayland *)(uintptr_t)info->surface;
 	int					 buffer_count, i;
 	tbm_surface_h		*buffers;
+	int tpl_present_mode;
+
 	VkResult error = VK_ERROR_DEVICE_LOST;
 
 	VK_ASSERT(surface->base.platform == VK_ICD_WSI_PLATFORM_WAYLAND);
@@ -125,9 +127,27 @@ vk_CreateSwapchainKHR(VkDevice							 device,
 											TPL_SURFACE_TYPE_WINDOW, format);
 	VK_CHECK(chain->tpl_surface, goto error, "tpl_surface_create() failed.\n");
 
+	switch(info->presentMode) {
+		case VK_PRESENT_MODE_IMMEDIATE_KHR:
+			tpl_present_mode = TPL_DISPLAY_PRESENT_MODE_IMMEDIATE;
+			break;
+		case VK_PRESENT_MODE_MAILBOX_KHR:
+			tpl_present_mode = TPL_DISPLAY_PRESENT_MODE_MAILBOX;
+			break;
+		case VK_PRESENT_MODE_FIFO_KHR:
+			tpl_present_mode = TPL_DISPLAY_PRESENT_MODE_FIFO;
+			break;
+		case VK_PRESENT_MODE_FIFO_RELAXED_KHR:
+			tpl_present_mode = TPL_DISPLAY_PRESENT_MODE_FIFO_RELAXED;
+			break;
+		default:
+			VK_DEBUG("Unsupported present mode: 0x%x\n", info->presentMode);
+			goto error;
+	}
+
 	res = tpl_surface_create_swapchain(chain->tpl_surface, format,
 									   info->imageExtent.width, info->imageExtent.height,
-									   info->minImageCount);
+									   info->minImageCount, tpl_present_mode);
 	if (res == TPL_ERROR_OUT_OF_MEMORY) {
 		error = VK_ERROR_OUT_OF_DEVICE_MEMORY;
 		VK_ERROR("tpl_surface_create_swapchain() failed.\n");
