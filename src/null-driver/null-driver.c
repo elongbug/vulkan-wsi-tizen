@@ -506,7 +506,7 @@ nulldrv_img_create(struct nulldrv_dev *dev,
 static struct nulldrv_img *
 nulldrv_img(VkImage image)
 {
-	return *(struct nulldrv_img **) &image;
+	return (struct nulldrv_img *) (uintptr_t)image;
 }
 
 static VkResult
@@ -583,7 +583,7 @@ nulldrv_mem_map(struct nulldrv_mem *mem, VkFlags flags)
 static struct nulldrv_mem *
 nulldrv_mem(VkDeviceMemory mem)
 {
-	return *(struct nulldrv_mem **) &mem;
+	return (struct nulldrv_mem *) (uintptr_t)mem;
 }
 
 static struct nulldrv_buf *
@@ -670,7 +670,7 @@ nulldrv_pipeline_layout_create(struct nulldrv_dev *dev,
 static struct nulldrv_desc_layout *
 nulldrv_desc_layout(const VkDescriptorSetLayout layout)
 {
-	return *(struct nulldrv_desc_layout **) &layout;
+	return (struct nulldrv_desc_layout *) (uintptr_t)layout;
 }
 
 static VkResult
@@ -762,7 +762,7 @@ nulldrv_desc_set_create(struct nulldrv_dev *dev,
 static struct nulldrv_desc_pool *
 nulldrv_desc_pool(VkDescriptorPool pool)
 {
-	return *(struct nulldrv_desc_pool **) &pool;
+	return (struct nulldrv_desc_pool *) (uintptr_t)pool;
 }
 
 static VkResult
@@ -806,7 +806,7 @@ nulldrv_render_pass_create(struct nulldrv_dev *dev,
 static struct nulldrv_buf *
 nulldrv_buf(VkBuffer buf)
 {
-	return *(struct nulldrv_buf **) &buf;
+	return (struct nulldrv_buf *) (uintptr_t)buf;
 }
 
 static VkResult
