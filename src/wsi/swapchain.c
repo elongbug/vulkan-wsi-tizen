@@ -25,7 +25,6 @@
 #include "wsi.h"
 #include <string.h>
 #include <unistd.h>
-#include <tbm_sync.h>
 
 #define TBM_FORMAT_0	0
 
