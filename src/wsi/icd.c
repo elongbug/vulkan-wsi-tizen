@@ -35,6 +35,18 @@ vk_get_icd(void)
 	return &icd;
 }
 
+static vk_physical_device_t dev;
+
+vk_physical_device_t *
+vk_get_physical_device(VkPhysicalDevice pdev)
+{
+	if (dev.pdev != VK_NULL_HANDLE && dev.pdev != pdev)
+		return NULL;
+
+	dev.pdev = pdev;
+	return &dev;
+}
+
 static const VkExtensionProperties wsi_instance_extensions[] = {
 	{ VK_KHR_SURFACE_EXTENSION_NAME, 25 },
 	{ VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME, 4 },
@@ -98,6 +110,7 @@ module_init(void)
 		   ARRAY_LENGTH(wsi_instance_extensions) * sizeof(VkExtensionProperties));
 
 	icd.instance_extension_count = count + ARRAY_LENGTH(wsi_instance_extensions);
+	dev.pdev = VK_NULL_HANDLE;
 }
 
 static void __attribute__((destructor))

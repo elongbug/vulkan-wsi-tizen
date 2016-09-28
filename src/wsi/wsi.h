@@ -33,15 +33,16 @@
 #include <utils.h>
 #include <tpl.h>
 
-typedef struct vk_surface	vk_surface_t;
-typedef struct vk_swapchain	vk_swapchain_t;
-typedef struct vk_buffer	vk_buffer_t;
-typedef struct vk_icd		vk_icd_t;
+typedef struct vk_surface			vk_surface_t;
+typedef struct vk_swapchain			vk_swapchain_t;
+typedef struct vk_buffer			vk_buffer_t;
+typedef struct vk_physical_device	vk_physical_device_t;
+typedef struct vk_icd				vk_icd_t;
 
 struct vk_icd {
 	void	*lib;
 
-	PFN_vkGetInstanceProcAddr	 				get_proc_addr;
+	PFN_vkGetInstanceProcAddr					get_proc_addr;
 	PFN_vkEnumerateDeviceExtensionProperties	enum_dev_exts;
 
 	uint32_t				 instance_extension_count;
@@ -55,6 +56,13 @@ struct vk_icd {
 
 vk_icd_t *
 vk_get_icd(void);
+
+struct vk_physical_device {
+	VkPhysicalDevice	pdev;
+};
+
+vk_physical_device_t *
+vk_get_physical_device(VkPhysicalDevice pdev);
 
 struct vk_buffer {
 	tbm_surface_h	tbm;
