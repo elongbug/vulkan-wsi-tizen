@@ -33,10 +33,16 @@
 #include <utils.h>
 #include <tpl.h>
 
+#define VK_TO_HANDLE(type, x)	((type)((uintptr_t)(x)))
+#define VK_TO_POINTER(type, x)	((type *)((uintptr_t)(x)))
+
 typedef struct vk_surface			vk_surface_t;
 typedef struct vk_swapchain			vk_swapchain_t;
 typedef struct vk_buffer			vk_buffer_t;
 typedef struct vk_physical_device	vk_physical_device_t;
+typedef struct vk_display			vk_display_t;
+typedef struct vk_display_plane		vk_display_plane_t;
+typedef struct vk_display_mode		vk_display_mode_t;
 typedef struct vk_icd				vk_icd_t;
 
 struct vk_icd {
@@ -58,11 +64,44 @@ vk_icd_t *
 vk_get_icd(void);
 
 struct vk_physical_device {
-	VkPhysicalDevice	pdev;
+	VkPhysicalDevice	 pdev;
+
+	uint32_t			 display_count;
+	vk_display_t		*displays;
+
+	uint32_t			 plane_count;
+	vk_display_plane_t	*planes;
 };
 
 vk_physical_device_t *
 vk_get_physical_device(VkPhysicalDevice pdev);
+
+struct vk_display {
+	VkDisplayPropertiesKHR	 prop;
+
+	uint32_t				 built_in_mode_count;
+	vk_display_mode_t		*built_in_modes;
+
+	uint32_t				 custom_mode_count;
+	vk_display_mode_t		*custom_modes;
+
+	vk_display_plane_t		*current_plane;
+};
+
+struct vk_display_plane {
+	VkDisplayPlanePropertiesKHR	  prop;
+
+	uint32_t					  supported_display_count;
+	vk_display_t				**supported_displays;
+
+	vk_display_t				 *current_display;
+	uint32_t					  current_stack_index;
+};
+
+struct vk_display_mode {
+	VkDisplayModePropertiesKHR	 prop;
+	vk_display_t				*display;
+};
 
 struct vk_buffer {
 	tbm_surface_h	tbm;
@@ -79,6 +118,9 @@ struct vk_swapchain {
 	uint32_t				 buffer_count;
 	vk_buffer_t				*buffers;
 };
+
+void
+vk_display_init(vk_physical_device_t *pdev);
 
 const VkAllocationCallbacks *
 vk_get_allocator(void *parent, const VkAllocationCallbacks *allocator);
