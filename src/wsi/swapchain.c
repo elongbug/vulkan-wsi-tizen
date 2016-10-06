@@ -128,10 +128,20 @@ vk_CreateSwapchainKHR(VkDevice							 device,
 	res = tpl_surface_create_swapchain(chain->tpl_surface, format,
 									   info->imageExtent.width, info->imageExtent.height,
 									   info->minImageCount);
+	if (res == TPL_ERROR_OUT_OF_MEMORY) {
+		error = VK_ERROR_OUT_OF_DEVICE_MEMORY;
+		VK_ERROR("tpl_surface_create_swapchain() failed.\n");
+		goto error;
+	}
 	VK_CHECK(res == TPL_ERROR_NONE, goto error, "tpl_surface_create_swapchain() failed.\n");
 
 	/* Initialize swapchain buffers. */
 	res = tpl_surface_get_swapchain_buffers(chain->tpl_surface, &buffers, &buffer_count);
+	if (res == TPL_ERROR_OUT_OF_MEMORY) {
+		error = VK_ERROR_OUT_OF_DEVICE_MEMORY;
+		VK_ERROR("tpl_surface_get_swapchain_buffers() failed.\n");
+		goto error_get_buffers;
+	}
 	VK_CHECK(res == TPL_ERROR_NONE, goto error_get_buffers, "tpl_surface_get_swapchain_buffers() failed.\n");
 
 	chain->buffers = vk_alloc(allocator, buffer_count * sizeof(vk_buffer_t),
