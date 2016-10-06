@@ -74,8 +74,8 @@ vk_GetPhysicalDeviceSurfaceCapabilitiesKHR(VkPhysicalDevice			 pdev,
 	caps->minImageExtent.width = 1;
 	caps->minImageExtent.height = 1;
 
-	caps->maxImageExtent.width = INT16_MAX;
-	caps->maxImageExtent.height = INT16_MAX;
+	caps->maxImageExtent.width = 4096; // Temporal maxImageExtent.width value for Tizen
+	caps->maxImageExtent.height = 4096; // Temporal maxImageExtent.height value for Tizen
 
 	caps->maxImageArrayLayers = 1;
 
