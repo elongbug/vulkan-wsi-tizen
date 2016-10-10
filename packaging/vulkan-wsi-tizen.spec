@@ -14,6 +14,7 @@ BuildRequires: libtool >= 2.2
 BuildRequires: cmake
 BuildRequires: pkgconfig(tpl-egl)
 BuildRequires: pkgconfig(libtbm)
+BuildRequires: pkgconfig(libtdm)
 BuildRequires: Vulkan-LoaderAndValidationLayers
 
 #%define _unpackaged_files_terminate_build 0

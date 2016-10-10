@@ -34,6 +34,7 @@ AC_DEFINE([VK_USE_PLATFORM_WAYLAND_KHR], [1], [Enable wayland WSI functions])
 
 PKG_CHECK_MODULES(TPL, [tpl-egl])
 PKG_CHECK_MODULES(TBM, [libtbm])
+PKG_CHECK_MODULES(TDM, [libtdm])
 
 # Output files
 AC_CONFIG_FILES([

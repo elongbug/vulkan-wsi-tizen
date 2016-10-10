@@ -25,16 +25,161 @@
 #include "wsi.h"
 #include <string.h>
 
-void
-vk_display_init(vk_physical_device_t *pdev)
+static void
+add_tdm_layer(vk_physical_device_t *pdev, tdm_layer *layer,
+			  vk_display_t *display, tdm_output *output)
 {
-	/* TODO: */
+	int zpos;
 
+	vk_display_plane_t *plane = &pdev->planes[pdev->plane_count];
+
+	plane->pdev = pdev;
+	plane->tdm_layer = layer;
+
+	plane->supported_display_count = 1;
+	plane->supported_displays[0] = display;
+
+	/* TODO: Map layer zpos into positive integer range between [0, NUM_LAYERS].*/
+	plane->current_display = display;
+
+	tdm_layer_get_zpos(layer, &zpos);
+	plane->current_stack_index = zpos;
+
+	plane->prop.currentDisplay = VK_TO_HANDLE(VkDisplayKHR, plane->current_display);
+	plane->prop.currentStackIndex = plane->current_stack_index;
+
+	pdev->plane_count++;
+}
+
+static void
+plane_fini(vk_display_plane_t *plane)
+{
+	/* Do Nothing */
+}
+
+static void
+add_tdm_output(vk_physical_device_t *pdev, tdm_output *output)
+{
+	vk_display_t 			*display = &pdev->displays[pdev->display_count];
+	const char 				*str;
+	unsigned int 			 w, h;
+	int						 count, i;
+	const tdm_output_mode  *modes;
+	tdm_error				 error;
+
+	display->pdev = pdev;
+	display->tdm_output = output;
+
+	/* Initialize modes. */
+	tdm_output_get_available_modes(output, &modes, &count);
+	VK_ASSERT(count > 0);
+
+	display->built_in_modes = calloc(count, sizeof(vk_display_mode_t));
+	VK_CHECK(display->built_in_modes, return, "calloc() failed.\n");
+
+	for (i = 0; i < count; i++) {
+		display->built_in_modes[i].display = display;
+		display->built_in_modes[i].prop.displayMode =
+			VK_TO_HANDLE(VkDisplayModeKHR, &display->built_in_modes[i]);
+		display->built_in_modes[i].prop.parameters.visibleRegion.width = modes[i].hdisplay;
+		display->built_in_modes[i].prop.parameters.visibleRegion.height = modes[i].vdisplay;
+		display->built_in_modes[i].prop.parameters.refreshRate = modes[i].vrefresh;
+	}
+
+	display->custom_mode_count = 0;
+	display->custom_modes = NULL;
+
+	/* Initialize prop. */
+	display->prop.display = VK_TO_HANDLE(VkDisplayKHR, display);
+
+	tdm_output_get_model_info(output, NULL, NULL, &str);
+	display->prop.displayName = strdup(str);
+
+	tdm_output_get_physical_size(output, &w, &h);
+	display->prop.physicalDimensions.width = w;
+	display->prop.physicalDimensions.height = h;
+
+	/* TODO: Physical Resolution */
+
+	/* TODO: Transform */
+	display->prop.supportedTransforms = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
+
+	/* TODO: Changing Z pos is only allowed for video layers. */
+	display->prop.planeReorderPossible = VK_FALSE;
+
+	display->prop.persistentContent = VK_FALSE;
+
+	/* Add layers */
+	error = tdm_output_get_layer_count(output, &count);
+
+	for (i = 0; i < count; i++) {
+		tdm_layer *layer = tdm_output_get_layer(output, i, &error);
+		add_tdm_layer(pdev, layer, display, output);
+	}
+
+	/* Finally increase display count. */
+	pdev->display_count++;
+}
+
+static void
+display_fini(vk_display_t *display)
+{
+	if (display->built_in_modes)
+		free(display->built_in_modes);
+
+	if (display->custom_modes)
+		free(display->custom_modes);
+}
+
+void
+vk_physical_device_fini_display(vk_physical_device_t *pdev)
+{
+	uint32_t i;
+
+	for (i = 0; i < pdev->display_count; i++)
+		display_fini(&pdev->displays[i]);
+
+	for (i = 0; i < pdev->plane_count; i++)
+		plane_fini(&pdev->planes[i]);
+
+	if (pdev->tdm_display)
+		tdm_display_deinit(pdev->tdm_display);
+
+	pdev->tdm_display = NULL;
 	pdev->display_count = 0;
-	pdev->displays = NULL;
-
 	pdev->plane_count = 0;
-	pdev->planes = NULL;
+}
+
+VkBool32
+vk_physical_device_init_display(vk_physical_device_t *pdev)
+{
+	tdm_error			 err;
+	int					 output_count, i;
+
+	pdev->tdm_display = NULL;
+	pdev->display_count = 0;
+	pdev->plane_count = 0;
+
+	/* Initialize TDM display. */
+	pdev->tdm_display = tdm_display_init(&err);
+	VK_CHECK(err == TDM_ERROR_NONE, goto error, "tdm_display_init() failed.\n");
+
+	/* Get total output count. */
+	err = tdm_display_get_output_count(pdev->tdm_display, &output_count);
+	VK_CHECK(err == TDM_ERROR_NONE, goto error, "tdm_display_get_output_count() failed.\n");
+
+	/* Add TDM outputs. */
+	for (i = 0; i < output_count; i++) {
+		tdm_output *output = tdm_display_get_output(pdev->tdm_display, i, &err);
+		VK_CHECK(err == TDM_ERROR_NONE, goto error, "tdm_display_get_output() failed.\n");
+		add_tdm_output(pdev, output);
+	}
+
+	return VK_TRUE;
+
+error:
+	vk_physical_device_fini_display(pdev);
+	return VK_FALSE;
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL

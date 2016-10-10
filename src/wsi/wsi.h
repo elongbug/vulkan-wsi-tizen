@@ -32,9 +32,13 @@
 #include <vulkan/vk_icd.h>
 #include <utils.h>
 #include <tpl.h>
+#include <tdm.h>
 
 #define VK_TO_HANDLE(type, x)	((type)((uintptr_t)(x)))
 #define VK_TO_POINTER(type, x)	((type *)((uintptr_t)(x)))
+
+#define VK_MAX_DISPLAY_COUNT	16
+#define VK_MAX_PLANE_COUNT		64
 
 typedef struct vk_surface			vk_surface_t;
 typedef struct vk_swapchain			vk_swapchain_t;
@@ -63,20 +67,14 @@ struct vk_icd {
 vk_icd_t *
 vk_get_icd(void);
 
-struct vk_physical_device {
-	VkPhysicalDevice	 pdev;
-
-	uint32_t			 display_count;
-	vk_display_t		*displays;
-
-	uint32_t			 plane_count;
-	vk_display_plane_t	*planes;
-};
-
 vk_physical_device_t *
 vk_get_physical_device(VkPhysicalDevice pdev);
 
 struct vk_display {
+	vk_physical_device_t	*pdev;
+
+	tdm_output				*tdm_output;
+
 	VkDisplayPropertiesKHR	 prop;
 
 	uint32_t				 built_in_mode_count;
@@ -84,23 +82,37 @@ struct vk_display {
 
 	uint32_t				 custom_mode_count;
 	vk_display_mode_t		*custom_modes;
-
-	vk_display_plane_t		*current_plane;
 };
 
 struct vk_display_plane {
-	VkDisplayPlanePropertiesKHR	  prop;
+	vk_physical_device_t		*pdev;
 
-	uint32_t					  supported_display_count;
-	vk_display_t				**supported_displays;
+	tdm_layer					*tdm_layer;
 
-	vk_display_t				 *current_display;
-	uint32_t					  current_stack_index;
+	VkDisplayPlanePropertiesKHR	 prop;
+
+	uint32_t					 supported_display_count;
+	vk_display_t				*supported_displays[VK_MAX_DISPLAY_COUNT];
+
+	vk_display_t				*current_display;
+	uint32_t					 current_stack_index;
 };
 
 struct vk_display_mode {
-	VkDisplayModePropertiesKHR	 prop;
 	vk_display_t				*display;
+	VkDisplayModePropertiesKHR	 prop;
+};
+
+struct vk_physical_device {
+	VkPhysicalDevice	 pdev;
+
+	tdm_display			*tdm_display;
+
+	uint32_t			 display_count;
+	vk_display_t		 displays[VK_MAX_DISPLAY_COUNT];
+
+	uint32_t			 plane_count;
+	vk_display_plane_t	 planes[VK_MAX_PLANE_COUNT];
 };
 
 struct vk_buffer {
@@ -119,8 +131,11 @@ struct vk_swapchain {
 	vk_buffer_t				*buffers;
 };
 
+VkBool32
+vk_physical_device_init_display(vk_physical_device_t *pdev);
+
 void
-vk_display_init(vk_physical_device_t *pdev);
+vk_physical_device_fini_display(vk_physical_device_t *pdev);
 
 const VkAllocationCallbacks *
 vk_get_allocator(void *parent, const VkAllocationCallbacks *allocator);
