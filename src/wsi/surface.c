@@ -44,18 +44,13 @@ vk_GetPhysicalDeviceSurfaceSupportKHR(VkPhysicalDevice	 pdev,
 	return VK_SUCCESS;
 }
 
-VKAPI_ATTR VkResult VKAPI_CALL
-vk_GetPhysicalDeviceSurfaceCapabilitiesKHR(VkPhysicalDevice			 pdev,
-										   VkSurfaceKHR				 surface,
-										   VkSurfaceCapabilitiesKHR	*caps)
+static VkResult
+tpl_get_surface_capabilities(VkIcdSurfaceWayland		*sfc,
+							 VkSurfaceCapabilitiesKHR	*caps)
 {
-	VkIcdSurfaceWayland	*sfc = (VkIcdSurfaceWayland *)(uintptr_t)surface;
 	tpl_display_t		*display;
-	int min, max;
-	tpl_result_t res;
-
-	VK_CHECK(sfc->base.platform == VK_ICD_WSI_PLATFORM_WAYLAND, return VK_ERROR_DEVICE_LOST,
-			 "Not supported platform surface.\n");
+	int					 min, max;
+	tpl_result_t		 res;
 
 	display = vk_get_tpl_display(sfc->display);
 	VK_CHECK(display, return VK_ERROR_DEVICE_LOST, "vk_get_tpl_display() failed.\n");
@@ -94,6 +89,64 @@ vk_GetPhysicalDeviceSurfaceCapabilitiesKHR(VkPhysicalDevice			 pdev,
 	return VK_SUCCESS;
 }
 
+static VkResult
+tdm_get_surface_capabilities(VkIcdSurfaceDisplay		*sfc,
+							 VkSurfaceCapabilitiesKHR	*caps)
+{
+	int32_t			 minw, minh, maxw, maxh;
+	tdm_error			 tdm_err;
+	vk_display_mode_t	*disp_mode = (vk_display_mode_t *)(uintptr_t)sfc->displayMode;
+	vk_display_t		*disp = disp_mode->display;
+
+	tdm_err = tdm_output_get_available_size(disp->tdm_output, &minw, &minh,
+											&maxw, &maxh, NULL);
+	VK_CHECK(tdm_err == TDM_ERROR_NONE, return VK_ERROR_DEVICE_LOST,
+			 "tdm_output_get_available_size failed.\n");
+
+	/* TODO: Hard-coded. */
+	caps->minImageCount = 2;
+	caps->maxImageCount = 3;
+
+	caps->currentExtent.width = sfc->imageExtent.width;
+	caps->currentExtent.height = sfc->imageExtent.height;
+
+	caps->minImageExtent.width = minw;
+	caps->minImageExtent.height = minh;
+
+	caps->maxImageExtent.width = maxw;
+	caps->maxImageExtent.height = maxh;
+
+	caps->maxImageArrayLayers = 1;
+
+	caps->supportedTransforms = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
+	caps->currentTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
+	caps->supportedCompositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR |
+		VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR;
+
+	caps->supportedUsageFlags = VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
+		VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+		VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+	return VK_SUCCESS;
+}
+
+VKAPI_ATTR VkResult VKAPI_CALL
+vk_GetPhysicalDeviceSurfaceCapabilitiesKHR(VkPhysicalDevice			 pdev,
+										   VkSurfaceKHR				 surface,
+										   VkSurfaceCapabilitiesKHR	*caps)
+{
+	switch (((VkIcdSurfaceBase *)(uintptr_t)surface)->platform) {
+		case VK_ICD_WSI_PLATFORM_WAYLAND:
+			return tpl_get_surface_capabilities((VkIcdSurfaceWayland *)
+												(uintptr_t)surface, caps);
+		case VK_ICD_WSI_PLATFORM_DISPLAY:
+			return tdm_get_surface_capabilities((VkIcdSurfaceDisplay *)
+												(uintptr_t)surface, caps);
+		default:
+			return VK_ERROR_EXTENSION_NOT_PRESENT;
+	}
+}
+
 #define FORMAT_ENTRY(tbm, vk, cs) { TBM_FORMAT_##tbm, { VK_FORMAT_##vk, VK_COLORSPACE_##cs }}
 
 static const struct {
@@ -127,11 +180,10 @@ static const struct {
 	FORMAT_ENTRY(ABGR2101010,	A2B10G10R10_UNORM_PACK32,	SRGB_NONLINEAR_KHR),
 };
 
-VKAPI_ATTR VkResult VKAPI_CALL
-vk_GetPhysicalDeviceSurfaceFormatsKHR(VkPhysicalDevice		 pdev,
-									  VkSurfaceKHR			 surface,
-									  uint32_t				*format_count,
-									  VkSurfaceFormatKHR	*formats)
+static VkResult
+tpl_get_surface_formats(VkIcdSurfaceWayland	*sfc,
+						uint32_t			*format_count,
+						VkSurfaceFormatKHR	*formats)
 {
 	uint32_t			 tbm_format_count;
 	tbm_format			*tbm_formats;
@@ -167,17 +219,74 @@ vk_GetPhysicalDeviceSurfaceFormatsKHR(VkPhysicalDevice		 pdev,
 	return VK_SUCCESS;
 }
 
-VKAPI_ATTR VkResult VKAPI_CALL
-vk_GetPhysicalDeviceSurfacePresentModesKHR(VkPhysicalDevice	 pdev,
-										   VkSurfaceKHR		 surface,
-										   uint32_t			*mode_count,
-										   VkPresentModeKHR	*modes)
+static VkResult
+tdm_get_surface_formats(VkIcdSurfaceDisplay	*sfc,
+						uint32_t			*format_count,
+						VkSurfaceFormatKHR	*formats)
 {
-	VkIcdSurfaceWayland	*sfc = (VkIcdSurfaceWayland *)(uintptr_t)surface;
+	int					 tbm_format_count, j;
+	const tbm_format	*tbm_formats;
+	uint32_t			 surface_format_count = 0, i;
+	VkSurfaceFormatKHR	 surface_formats[ARRAY_LENGTH(supported_formats)];
+	tdm_error			 tdm_err;
+	vk_display_mode_t	*disp_mode = (vk_display_mode_t *)(uintptr_t)sfc->displayMode;
+	tdm_layer			*layer = disp_mode->display->pdev->planes[sfc->planeIndex].tdm_layer;
+
+	tdm_err = tdm_layer_get_available_formats(layer, &tbm_formats, &tbm_format_count);
+	VK_CHECK(tdm_err == TDM_ERROR_NONE, return VK_ERROR_DEVICE_LOST,
+			 "tdm_layer_get_available_formats failed.\n");
+
+	for (i = 0; i < ARRAY_LENGTH(supported_formats); i++) {
+		for (j = 0; j < tbm_format_count; j++) {
+			if (tbm_formats[j] == supported_formats[i].tbm_format) {
+				/* TODO Check if ICD support the format. */
+				surface_formats[surface_format_count++] = supported_formats[i].surface_format;
+				break;
+			}
+		}
+	}
+
+	if (formats) {
+		*format_count = MIN(*format_count, surface_format_count);
+		memcpy(formats, &surface_formats[0], sizeof(VkSurfaceFormatKHR) * (*format_count));
+
+		if (*format_count < surface_format_count)
+			return VK_INCOMPLETE;
+	} else {
+		*format_count = surface_format_count;
+	}
+
+	return VK_SUCCESS;
+
+}
+
+VKAPI_ATTR VkResult VKAPI_CALL
+vk_GetPhysicalDeviceSurfaceFormatsKHR(VkPhysicalDevice		 pdev,
+									  VkSurfaceKHR			 surface,
+									  uint32_t				*format_count,
+									  VkSurfaceFormatKHR	*formats)
+{
+	switch (((VkIcdSurfaceBase *)(uintptr_t)surface)->platform) {
+		case VK_ICD_WSI_PLATFORM_WAYLAND:
+			return tpl_get_surface_formats((VkIcdSurfaceWayland *)
+										   (uintptr_t)surface, format_count, formats);
+		case VK_ICD_WSI_PLATFORM_DISPLAY:
+			return tdm_get_surface_formats((VkIcdSurfaceDisplay *)
+										   (uintptr_t)surface, format_count, formats);
+		default:
+			return VK_ERROR_EXTENSION_NOT_PRESENT;
+	}
+}
+
+static VkResult
+tpl_get_surface_present_modes(VkIcdSurfaceWayland	*sfc,
+							  uint32_t				*mode_count,
+							  VkPresentModeKHR		*modes)
+{
 	tpl_display_t		*display;
-	tpl_result_t res;
-	int tpl_support_modes;
-	uint32_t support_mode_cnt = 0;
+	tpl_result_t		 res;
+	int					 tpl_support_modes;
+	uint32_t			 support_mode_cnt = 0;
 
 	VK_CHECK(sfc->base.platform == VK_ICD_WSI_PLATFORM_WAYLAND, return VK_ERROR_DEVICE_LOST,
 			 "Not supported platform surface.\n");
@@ -204,10 +313,10 @@ vk_GetPhysicalDeviceSurfacePresentModesKHR(VkPhysicalDevice	 pdev,
 		uint32_t i = 0;
 		*mode_count = MIN(*mode_count, support_mode_cnt);
 
-		if (i < *mode_count && tpl_support_modes & TPL_DISPLAY_PRESENT_MODE_MAILBOX)
-			modes[i++] = VK_PRESENT_MODE_MAILBOX_KHR;
 		if (i < *mode_count && tpl_support_modes & TPL_DISPLAY_PRESENT_MODE_FIFO)
 			modes[i++] = VK_PRESENT_MODE_FIFO_KHR;
+		if (i < *mode_count && tpl_support_modes & TPL_DISPLAY_PRESENT_MODE_MAILBOX)
+			modes[i++] = VK_PRESENT_MODE_MAILBOX_KHR;
 		if (i < *mode_count && tpl_support_modes & TPL_DISPLAY_PRESENT_MODE_IMMEDIATE)
 			modes[i++] = VK_PRESENT_MODE_IMMEDIATE_KHR;
 		if (i < *mode_count && tpl_support_modes & TPL_DISPLAY_PRESENT_MODE_FIFO_RELAXED)
@@ -220,4 +329,52 @@ vk_GetPhysicalDeviceSurfacePresentModesKHR(VkPhysicalDevice	 pdev,
 	}
 
 	return VK_SUCCESS;
+}
+
+static VkResult
+tdm_get_surface_present_modes(VkIcdSurfaceDisplay	*sfc,
+							  uint32_t				*mode_count,
+							  VkPresentModeKHR		*modes)
+{
+	/* TODO: hard-coded
+	 *	need implements swapchain
+	 */
+	if (modes) {
+		uint32_t i = 0;
+
+		if (i < *mode_count)
+			modes[i++] = VK_PRESENT_MODE_FIFO_KHR;
+		if (i < *mode_count)
+			modes[i++] = VK_PRESENT_MODE_MAILBOX_KHR;
+		if (i < *mode_count)
+			modes[i++] = VK_PRESENT_MODE_IMMEDIATE_KHR;
+		if (i < *mode_count)
+			modes[i++] = VK_PRESENT_MODE_FIFO_RELAXED_KHR;
+
+		if (*mode_count < 4)
+			return VK_INCOMPLETE;
+	} else {
+		*mode_count = 4;
+	}
+
+	return VK_SUCCESS;
+}
+
+
+VKAPI_ATTR VkResult VKAPI_CALL
+vk_GetPhysicalDeviceSurfacePresentModesKHR(VkPhysicalDevice	 pdev,
+										   VkSurfaceKHR		 surface,
+										   uint32_t			*mode_count,
+										   VkPresentModeKHR	*modes)
+{
+	switch (((VkIcdSurfaceBase *)(uintptr_t)surface)->platform) {
+		case VK_ICD_WSI_PLATFORM_WAYLAND:
+			return tpl_get_surface_present_modes((VkIcdSurfaceWayland *)
+												 (uintptr_t)surface, mode_count, modes);
+		case VK_ICD_WSI_PLATFORM_DISPLAY:
+			return tdm_get_surface_present_modes((VkIcdSurfaceDisplay *)
+												 (uintptr_t)surface, mode_count, modes);
+		default:
+			return VK_ERROR_EXTENSION_NOT_PRESENT;
+	}
 }
