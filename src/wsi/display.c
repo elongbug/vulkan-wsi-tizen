@@ -297,8 +297,50 @@ vk_CreateDisplayModeKHR(VkPhysicalDevice					 pdev,
 						const VkAllocationCallbacks			*allocator,
 						VkDisplayModeKHR					*mode)
 {
-	/* TODO: */
-	return VK_ERROR_INITIALIZATION_FAILED;
+	vk_display_mode_t		*disp_mode;
+	vk_display_t			*dpy = VK_TO_POINTER(vk_display_t, display);
+	uint32_t				 i;
+
+	for (i = 0; i < dpy->built_in_mode_count; i++) {
+		VkDisplayModePropertiesKHR *prop = &dpy->built_in_modes[i].prop;
+		if (prop->parameters.visibleRegion.width == info->parameters.visibleRegion.width &&
+			prop->parameters.visibleRegion.height == info->parameters.visibleRegion.height &&
+			prop->parameters.refreshRate == info->parameters.refreshRate) {
+			*mode = prop->displayMode;
+			return VK_SUCCESS;
+		}
+	}
+
+	for (i = 0; i < dpy->custom_mode_count; i++) {
+		VkDisplayModePropertiesKHR *prop = &dpy->custom_modes[i].prop;
+		if (prop->parameters.visibleRegion.width == info->parameters.visibleRegion.width &&
+			prop->parameters.visibleRegion.height == info->parameters.visibleRegion.height &&
+			prop->parameters.refreshRate == info->parameters.refreshRate) {
+			*mode = prop->displayMode;
+			return VK_SUCCESS;
+		}
+	}
+
+	/* can't found */
+	allocator = allocator ? allocator : vk_get_allocator(NULL, allocator);
+	disp_mode = vk_realloc(allocator, dpy->custom_modes,
+						   sizeof(vk_display_mode_t) * (dpy->custom_mode_count + 1),
+						   VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+	VK_CHECK(disp_mode, return VK_ERROR_OUT_OF_HOST_MEMORY, "vk_alloc() failed.\n");
+
+	/* TODO: need check prop */
+	dpy->custom_modes = disp_mode;
+	disp_mode = &dpy->custom_modes[dpy->custom_mode_count++];
+
+	disp_mode->display = dpy;
+	disp_mode->prop.parameters.visibleRegion.width = info->parameters.visibleRegion.width;
+	disp_mode->prop.parameters.visibleRegion.height = info->parameters.visibleRegion.height;
+	disp_mode->prop.parameters.refreshRate = info->parameters.refreshRate;
+	disp_mode->prop.displayMode = VK_TO_HANDLE(VkDisplayModeKHR, disp_mode);
+
+	*mode = disp_mode->prop.displayMode;
+
+	return VK_SUCCESS;
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL
