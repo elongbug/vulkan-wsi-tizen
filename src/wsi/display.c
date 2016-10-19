@@ -63,6 +63,7 @@ add_tdm_output(vk_physical_device_t *pdev, tdm_output *output)
 	vk_display_t 			*display = &pdev->displays[pdev->display_count];
 	const char 				*str;
 	unsigned int 			 w, h;
+	int						 r_w, r_h;
 	int						 count, i;
 	const tdm_output_mode  *modes;
 	tdm_error				 error;
@@ -70,20 +71,23 @@ add_tdm_output(vk_physical_device_t *pdev, tdm_output *output)
 	display->pdev = pdev;
 	display->tdm_output = output;
 
+	display->built_in_modes = NULL;
+	display->built_in_mode_count = 0;
 	/* Initialize modes. */
 	tdm_output_get_available_modes(output, &modes, &count);
-	VK_ASSERT(count > 0);
+	if (count > 0) {
+		display->built_in_modes = calloc(count, sizeof(vk_display_mode_t));
+		VK_CHECK(display->built_in_modes, return, "calloc() failed.\n");
 
-	display->built_in_modes = calloc(count, sizeof(vk_display_mode_t));
-	VK_CHECK(display->built_in_modes, return, "calloc() failed.\n");
-
-	for (i = 0; i < count; i++) {
-		display->built_in_modes[i].display = display;
-		display->built_in_modes[i].prop.displayMode =
-			VK_TO_HANDLE(VkDisplayModeKHR, &display->built_in_modes[i]);
-		display->built_in_modes[i].prop.parameters.visibleRegion.width = modes[i].hdisplay;
-		display->built_in_modes[i].prop.parameters.visibleRegion.height = modes[i].vdisplay;
-		display->built_in_modes[i].prop.parameters.refreshRate = modes[i].vrefresh;
+		for (i = 0; i < count; i++) {
+			display->built_in_modes[i].display = display;
+			display->built_in_modes[i].prop.displayMode =
+				VK_TO_HANDLE(VkDisplayModeKHR, &display->built_in_modes[i]);
+			display->built_in_modes[i].prop.parameters.visibleRegion.width = modes[i].hdisplay;
+			display->built_in_modes[i].prop.parameters.visibleRegion.height = modes[i].vdisplay;
+			display->built_in_modes[i].prop.parameters.refreshRate = modes[i].vrefresh;
+		}
+		display->built_in_mode_count = count;
 	}
 
 	display->custom_mode_count = 0;
@@ -92,14 +96,19 @@ add_tdm_output(vk_physical_device_t *pdev, tdm_output *output)
 	/* Initialize prop. */
 	display->prop.display = VK_TO_HANDLE(VkDisplayKHR, display);
 
-	tdm_output_get_model_info(output, NULL, NULL, &str);
+	error = tdm_output_get_model_info(output, NULL, NULL, &str);
+	VK_CHECK(error == TDM_ERROR_NONE, return, "tdm_output_get_model_info failed.\n");
 	display->prop.displayName = strdup(str);
 
-	tdm_output_get_physical_size(output, &w, &h);
+	error = tdm_output_get_physical_size(output, &w, &h);
+	VK_CHECK(error == TDM_ERROR_NONE, return, "tdm_output_get_tdm_output_get_physical_size failed.\n");
 	display->prop.physicalDimensions.width = w;
 	display->prop.physicalDimensions.height = h;
 
-	/* TODO: Physical Resolution */
+	error = tdm_output_get_available_size(output, NULL, NULL, &r_w, &r_h, NULL);
+	VK_CHECK(error == TDM_ERROR_NONE, return, "tdm_output_get_available_size failed.\n");
+	display->prop.physicalResolution.width = r_w;
+	display->prop.physicalResolution.height = r_h;
 
 	/* TODO: Transform */
 	display->prop.supportedTransforms = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;

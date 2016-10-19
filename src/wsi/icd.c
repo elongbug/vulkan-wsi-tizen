@@ -111,11 +111,14 @@ module_init(void)
 
 	icd.instance_extension_count = count + ARRAY_LENGTH(wsi_instance_extensions);
 	dev.pdev = VK_NULL_HANDLE;
+	vk_physical_device_init_display(&dev);
 }
 
 static void __attribute__((destructor))
 module_fini(void)
 {
+	vk_physical_device_fini_display(&dev);
+
 	if (icd.lib)
 		dlclose(icd.lib);
 }
