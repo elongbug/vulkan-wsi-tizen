@@ -298,9 +298,41 @@ vk_GetDisplayPlaneCapabilitiesKHR(VkPhysicalDevice				 pdev,
 								  uint32_t						 plane_index,
 								  VkDisplayPlaneCapabilitiesKHR	*caps)
 {
+	int min_w, min_h, max_w, max_h;
+	tdm_error tdm_err;
+	vk_physical_device_t	*phydev = vk_get_physical_device(pdev);
+	vk_display_plane_t		*plane = &phydev->planes[plane_index];
+	vk_display_t			*disp = plane->current_display;
+
+	tdm_err = tdm_output_get_available_size(disp->tdm_output, &min_w, &min_h,
+											&max_w, &max_h, NULL);
+	VK_CHECK(tdm_err == TDM_ERROR_NONE, return VK_ERROR_DEVICE_LOST, "tdm_output_get_available_size failed.\n");
+
 	memset(caps, 0x00, sizeof(VkDisplayPlaneCapabilitiesKHR));
 
-	/* TODO: Fill in the caps argument. */
+	/* TODO: check caps argument. */
+	caps->supportedAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR |
+		VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR;
+
+	caps->minSrcPosition.x = 0;
+	caps->minSrcPosition.y = 0;
+	caps->maxSrcPosition.x = max_w - 1;
+	caps->maxSrcPosition.y = max_h - 1;
+
+	caps->minSrcExtent.width = 1;
+	caps->minSrcExtent.height = 1;
+	caps->maxSrcExtent.width = max_w;
+	caps->maxSrcExtent.height = max_h;
+
+	caps->minDstPosition.x = 0;
+	caps->minDstPosition.y = 0;
+	caps->maxDstPosition.x = max_w - min_w;
+	caps->maxDstPosition.y = max_h - min_h;
+
+	caps->minDstExtent.width = min_w;
+	caps->minDstExtent.height = min_h;
+	caps->maxDstExtent.width = max_w;
+	caps->maxDstExtent.height = max_h;
 
 	return VK_SUCCESS;
 }
