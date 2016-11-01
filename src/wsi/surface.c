@@ -93,10 +93,16 @@ static VkResult
 tdm_get_surface_capabilities(VkIcdSurfaceDisplay		*sfc,
 							 VkSurfaceCapabilitiesKHR	*caps)
 {
-	int32_t			 minw, minh, maxw, maxh;
+	int32_t				 minw, minh, maxw, maxh;
 	tdm_error			 tdm_err;
-	vk_display_mode_t	*disp_mode = (vk_display_mode_t *)(uintptr_t)sfc->displayMode;
-	vk_display_t		*disp = disp_mode->display;
+	vk_display_mode_t	*disp_mode;
+	vk_display_t		*disp;
+
+	disp_mode = (vk_display_mode_t *)(uintptr_t)sfc->displayMode;
+	VK_CHECK(disp_mode, return VK_ERROR_DEVICE_LOST, "not supported display mode");
+
+	disp = disp_mode->display;
+	VK_CHECK(disp, return VK_ERROR_DEVICE_LOST, "not supported display");
 
 	tdm_err = tdm_output_get_available_size(disp->tdm_output, &minw, &minh,
 											&maxw, &maxh, NULL);
@@ -229,8 +235,19 @@ tdm_get_surface_formats(VkIcdSurfaceDisplay	*sfc,
 	uint32_t			 surface_format_count = 0, i;
 	VkSurfaceFormatKHR	 surface_formats[ARRAY_LENGTH(supported_formats)];
 	tdm_error			 tdm_err;
-	vk_display_mode_t	*disp_mode = (vk_display_mode_t *)(uintptr_t)sfc->displayMode;
-	tdm_layer			*layer = disp_mode->display->pdev->planes[sfc->planeIndex].tdm_layer;
+	vk_display_mode_t	*disp_mode;
+	tdm_layer			*layer;
+
+	disp_mode = (vk_display_mode_t *)(uintptr_t)sfc->displayMode;
+	VK_CHECK(disp_mode, return VK_ERROR_DEVICE_LOST, "not supported display mode");
+	VK_CHECK(disp_mode->display && disp_mode->display->pdev,
+			 return VK_ERROR_DEVICE_LOST, "not supported display");
+	VK_CHECK(disp_mode->display->pdev->plane_count > sfc->planeIndex,
+			 return VK_ERROR_DEVICE_LOST, "not supported display plainIndex");
+
+	layer = disp_mode->display->pdev->planes[sfc->planeIndex].tdm_layer;
+	VK_CHECK(disp_mode->display->pdev->plane_count > sfc->planeIndex,
+			 return VK_ERROR_DEVICE_LOST, "tdm_layer is NULL");
 
 	tdm_err = tdm_layer_get_available_formats(layer, &tbm_formats, &tbm_format_count);
 	VK_CHECK(tdm_err == TDM_ERROR_NONE, return VK_ERROR_DEVICE_LOST,
