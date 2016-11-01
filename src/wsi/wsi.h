@@ -124,11 +124,26 @@ struct vk_swapchain {
 	VkAllocationCallbacks	 allocator;
 	VkSurfaceKHR			 surface;
 
-	tpl_display_t			*tpl_display;
-	tpl_surface_t			*tpl_surface;
+	VkResult				(*get_buffers)	(VkDevice,
+											 vk_swapchain_t *,
+											 tbm_surface_h **,
+											 uint32_t *);	/* buffer count */
+	VkResult				(*acquire_image)(VkDevice,
+											 vk_swapchain_t *,
+											 uint64_t,		/* timeout */
+											 tbm_surface_h *,
+											 int *);		/* sync fd */
+	VkResult				(*present_image)(VkQueue,
+											 vk_swapchain_t *,
+											 tbm_surface_h,
+											 int);			/* sync fd */
+	void					(*deinit)		(VkDevice,
+											 vk_swapchain_t *);
 
 	uint32_t				 buffer_count;
 	vk_buffer_t				*buffers;
+
+	void *backend_data;
 };
 
 VkBool32
@@ -160,6 +175,10 @@ vk_get_tpl_display(tpl_handle_t native_dpy)
 	}
 	return display;
 };
+
+VkResult
+swapchain_tpl_init(VkDevice device, const VkSwapchainCreateInfoKHR *info,
+				   vk_swapchain_t *chain, tbm_format format);
 
 /* Entry point proto types. */
 VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL

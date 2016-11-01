@@ -13,12 +13,13 @@ vulkan_wsi_tizen_la_CFLAGS = $(AM_CFLAGS) -I$(top_srcdir)/include		\
 
 vulkan_wsi_tizen_la_LDFLAGS = -module -avoid-version
 vulkan_wsi_tizen_la_LIBADD = $(top_builddir)/src/utils/libutils.la	\
-							 $(TPL_LIBS) $(TBM_CFLAGS) $(TDM_CFLAGS)
+							 $(TPL_LIBS) $(TBM_LIBS) $(TDM_LIBS)
 
 vulkan_wsi_tizen_la_SOURCES = wsi.h				\
 							  entry-points.c	\
 							  surface.c			\
 							  swapchain.c		\
+							  swapchain_tpl.c	\
 							  display.c			\
 							  allocator.c		\
 							  icd.c				\

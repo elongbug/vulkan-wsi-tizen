@@ -25,6 +25,7 @@
 #include "wsi.h"
 #include <string.h>
 #include <unistd.h>
+#include <stdio.h>
 
 #define TBM_FORMAT_0	0
 
@@ -91,21 +92,25 @@ vk_CreateSwapchainKHR(VkDevice							 device,
 					  const VkAllocationCallbacks		*allocator,
 					  VkSwapchainKHR					*swapchain)
 {
-	vk_icd_t			*icd = vk_get_icd();
+	VkResult (*init)(VkDevice, const VkSwapchainCreateInfoKHR *,
+					 vk_swapchain_t *, tbm_format);
 	vk_swapchain_t		*chain;
-	tbm_format			 format;
-	tpl_result_t		 res;
-	VkIcdSurfaceWayland	*surface = (VkIcdSurfaceWayland *)(uintptr_t)info->surface;
-	int					 buffer_count, i;
+	VkResult			 error;
+	uint32_t			 i;
 	tbm_surface_h		*buffers;
-	int tpl_present_mode;
+	tbm_format			 format;
+	vk_icd_t			*icd = vk_get_icd();
 
-	VkResult error = VK_ERROR_DEVICE_LOST;
-
-	VK_ASSERT(surface->base.platform == VK_ICD_WSI_PLATFORM_WAYLAND);
-
-	format = get_tbm_format(info->imageFormat, info->compositeAlpha);
-	VK_CHECK(format, return VK_ERROR_SURFACE_LOST_KHR, "Not supported image format.\n");
+	switch(((VkIcdSurfaceBase *)(uintptr_t)info->surface)->platform) {
+		case VK_ICD_WSI_PLATFORM_WAYLAND:
+			init = swapchain_tpl_init;
+			break;
+		case VK_ICD_WSI_PLATFORM_DISPLAY:
+			init = NULL;
+			break;
+		default:
+			return VK_ERROR_EXTENSION_NOT_PRESENT;
+	}
 
 	allocator = vk_get_allocator(device, allocator);
 
@@ -117,57 +122,20 @@ vk_CreateSwapchainKHR(VkDevice							 device,
 	chain->allocator = *allocator;
 	chain->surface = info->surface;
 
-	/* Don't check NULL for display and window. There might be default ones for some systems. */
+	format = get_tbm_format(info->imageFormat, info->compositeAlpha);
+	VK_CHECK(format, return VK_ERROR_SURFACE_LOST_KHR, "Not supported image format.\n");
 
-	chain->tpl_display = vk_get_tpl_display(surface->display);
-	VK_CHECK(chain->tpl_display, goto error, "vk_get_tpl_display() failed.\n");
+	error = init(device, info, chain, format);
+	VK_CHECK(error == VK_SUCCESS, goto done, "swapchain backend init failed.\n");
 
-	chain->tpl_surface = tpl_surface_create(chain->tpl_display, surface->surface,
-											TPL_SURFACE_TYPE_WINDOW, format);
-	VK_CHECK(chain->tpl_surface, goto error, "tpl_surface_create() failed.\n");
+	error = chain->get_buffers(device, chain, &buffers, &chain->buffer_count);
+	VK_CHECK(error == VK_SUCCESS, goto done, "swapchain backend get buffers failed.\n");
 
-	switch(info->presentMode) {
-		case VK_PRESENT_MODE_IMMEDIATE_KHR:
-			tpl_present_mode = TPL_DISPLAY_PRESENT_MODE_IMMEDIATE;
-			break;
-		case VK_PRESENT_MODE_MAILBOX_KHR:
-			tpl_present_mode = TPL_DISPLAY_PRESENT_MODE_MAILBOX;
-			break;
-		case VK_PRESENT_MODE_FIFO_KHR:
-			tpl_present_mode = TPL_DISPLAY_PRESENT_MODE_FIFO;
-			break;
-		case VK_PRESENT_MODE_FIFO_RELAXED_KHR:
-			tpl_present_mode = TPL_DISPLAY_PRESENT_MODE_FIFO_RELAXED;
-			break;
-		default:
-			VK_DEBUG("Unsupported present mode: 0x%x\n", info->presentMode);
-			goto error;
-	}
-
-	res = tpl_surface_create_swapchain(chain->tpl_surface, format,
-									   info->imageExtent.width, info->imageExtent.height,
-									   info->minImageCount, tpl_present_mode);
-	if (res == TPL_ERROR_OUT_OF_MEMORY) {
-		error = VK_ERROR_OUT_OF_DEVICE_MEMORY;
-		VK_ERROR("tpl_surface_create_swapchain() failed.\n");
-		goto error;
-	}
-	VK_CHECK(res == TPL_ERROR_NONE, goto error, "tpl_surface_create_swapchain() failed.\n");
-
-	/* Initialize swapchain buffers. */
-	res = tpl_surface_get_swapchain_buffers(chain->tpl_surface, &buffers, &buffer_count);
-	if (res == TPL_ERROR_OUT_OF_MEMORY) {
-		error = VK_ERROR_OUT_OF_DEVICE_MEMORY;
-		VK_ERROR("tpl_surface_get_swapchain_buffers() failed.\n");
-		goto error_get_buffers;
-	}
-	VK_CHECK(res == TPL_ERROR_NONE, goto error_get_buffers, "tpl_surface_get_swapchain_buffers() failed.\n");
-
-	chain->buffers = vk_alloc(allocator, buffer_count * sizeof(vk_buffer_t),
+	chain->buffers = vk_alloc(&chain->allocator, chain->buffer_count * sizeof(vk_buffer_t),
 							  VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
 	VK_CHECK(chain->buffers, goto error_mem_alloc, "vk_alloc() failed.\n");
 
-	for (i = 0; i < buffer_count; i++) {
+	for (i = 0; i < chain->buffer_count; i++) {
 		VkImageCreateInfo image_info = {
 			VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
 			NULL,
@@ -187,32 +155,27 @@ vk_CreateSwapchainKHR(VkDevice							 device,
 		};
 
 		chain->buffers[i].tbm = buffers[i];
-		icd->create_presentable_image(device, buffers[i], &image_info, allocator,
-									  &chain->buffers[i].image);
+		icd->create_presentable_image(device, chain->buffers[i].tbm, &image_info,
+									  &chain->allocator, &chain->buffers[i].image);
 	}
-
-	chain->buffer_count = buffer_count;
-	*swapchain = (VkSwapchainKHR)(uintptr_t)chain;
-	return VK_SUCCESS;
+	goto done;
 
 error_mem_alloc:
 	error = VK_ERROR_OUT_OF_HOST_MEMORY;
 
-error_get_buffers:
-	tpl_surface_destroy_swapchain(chain->tpl_surface);
+done:
+	if (error != VK_SUCCESS) {
+		if (chain->deinit)
+			chain->deinit(device, chain);
 
-error:
-	if (chain->tpl_display)
-		tpl_object_unreference((tpl_object_t *)chain->tpl_display);
+		if (chain)
+			vk_free(allocator, chain);
 
-	if (chain->tpl_surface)
-		tpl_object_unreference((tpl_object_t *)chain->tpl_surface);
+		*swapchain = VK_NULL_HANDLE;
+	} else {
+		*swapchain = (VkSwapchainKHR)(uintptr_t)chain;
+	}
 
-	if (chain->buffers)
-		vk_free(allocator, chain->buffers);
-
-	vk_free(allocator, chain);
-	*swapchain = VK_NULL_HANDLE;
 	return error;
 }
 
@@ -232,17 +195,22 @@ vk_DestroySwapchainKHR(VkDevice						 device,
 					   VkSwapchainKHR				 swapchain,
 					   const VkAllocationCallbacks	*allocator)
 {
-	vk_swapchain_t *chain = (vk_swapchain_t *)(uintptr_t)swapchain;
+	vk_swapchain_t			*chain = (vk_swapchain_t *)(uintptr_t)swapchain;
+	vk_icd_t				*icd = vk_get_icd();
+	PFN_vkGetDeviceProcAddr	 icd_gdpa = (PFN_vkGetDeviceProcAddr)icd->get_proc_addr(NULL, "vkGetDeviceProcAddr");
 
-	tpl_surface_destroy_swapchain(chain->tpl_surface);
-	free(chain->buffers);
+	if (icd_gdpa != VK_NULL_HANDLE) {
+		PFN_vkDestroyImage		 destroy_image = (PFN_vkDestroyImage)icd_gdpa(device, "vkDestroyImage");
+		if (destroy_image != VK_NULL_HANDLE) {
+			uint32_t		 i;
 
-	if (chain->tpl_surface)
-		tpl_object_unreference((tpl_object_t *)chain->tpl_surface);
+			for (i = 0; i < chain->buffer_count; i++)
+				destroy_image(device, chain->buffers[i].image, &chain->allocator);
+		}
+	}
 
-	if (chain->tpl_display)
-		tpl_object_unreference((tpl_object_t *)chain->tpl_display);
-
+	chain->deinit(device, chain);
+	vk_free(&chain->allocator, chain->buffers);
 	vk_free(&chain->allocator, chain);
 }
 
@@ -279,27 +247,24 @@ vk_AcquireNextImageKHR(VkDevice			 device,
 					   VkFence			 fence,
 					   uint32_t			*image_index)
 {
-	vk_icd_t		*icd = vk_get_icd();
-	uint32_t		 i;
-	tbm_surface_h	 next;
+	VkResult		 res;
 	vk_swapchain_t	*chain = (vk_swapchain_t *)(uintptr_t)swapchain;
-	int sync_fd = -1;
+	vk_icd_t		*icd = vk_get_icd();
+	tbm_surface_h	 tbm_surface;
+	int				 sync;
+	uint32_t		 i;
 
-	if (icd->acquire_image) {
-		next = tpl_surface_dequeue_buffer_with_sync(chain->tpl_surface, timeout, &sync_fd);
-
-		if (next == NULL)
-			return VK_TIMEOUT;
-	} else {
-		next = tpl_surface_dequeue_buffer(chain->tpl_surface);
-		VK_CHECK(next, return VK_ERROR_SURFACE_LOST_KHR, "tpl_surface_dequeue_buffers() failed\n.");
-	}
+	if (icd->acquire_image)
+		res = chain->acquire_image(device, chain, timeout, &tbm_surface, &sync);
+	else
+		res = chain->acquire_image(device, chain, timeout, &tbm_surface, NULL);
+	VK_CHECK(res == VK_SUCCESS, return res, "backend acquire image failed\n.");
 
 	for (i = 0; i < chain->buffer_count; i++) {
-		if (next == chain->buffers[i].tbm) {
+		if (tbm_surface == chain->buffers[i].tbm) {
 			*image_index = i;
 			if (icd->acquire_image)
-				icd->acquire_image(device, chain->buffers[i].image, sync_fd, semaphore, fence);
+				icd->acquire_image(device, chain->buffers[i].image, sync, semaphore, fence);
 
 			/* TODO: We can do optimization here by returning buffer index immediatly despite the
 			 * buffer is not released yet. The fence or semaphore will be signaled when
@@ -316,24 +281,23 @@ VKAPI_ATTR VkResult VKAPI_CALL
 vk_QueuePresentKHR(VkQueue					 queue,
 				   const VkPresentInfoKHR	*info)
 {
-	vk_icd_t	*icd = vk_get_icd();
 	uint32_t	 i;
+	vk_icd_t	*icd = vk_get_icd();
 
 	for (i = 0; i < info->swapchainCount; i++) {
-		int sync_fd = -1;
-		tpl_result_t res;
+		VkResult		 res;
+		int				 sync_fd = -1;
 		vk_swapchain_t	*chain = (vk_swapchain_t *)(uintptr_t)info->pSwapchains[i];
 
 		if (icd->queue_signal_release_image)
 			icd->queue_signal_release_image(queue, info->waitSemaphoreCount, info->pWaitSemaphores,
 											chain->buffers[info->pImageIndices[i]].image, &sync_fd);
 
-		res = tpl_surface_enqueue_buffer_with_damage_and_sync(chain->tpl_surface,
-															  chain->buffers[info->pImageIndices[i]].tbm,
-															  0, NULL, sync_fd);
+		res = chain->present_image(queue, chain,
+								   chain->buffers[info->pImageIndices[i]].tbm, sync_fd);
 
 		if (info->pResults != NULL)
-			info->pResults[i] = res == TPL_ERROR_NONE ? VK_SUCCESS : VK_ERROR_DEVICE_LOST;
+			info->pResults[i] = res;
 	}
 
 	return VK_SUCCESS;
