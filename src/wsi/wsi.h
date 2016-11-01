@@ -101,6 +101,7 @@ struct vk_display_plane {
 struct vk_display_mode {
 	vk_display_t				*display;
 	VkDisplayModePropertiesKHR	 prop;
+	const tdm_output_mode		*tdm_mode;
 };
 
 struct vk_physical_device {
@@ -178,6 +179,10 @@ vk_get_tpl_display(tpl_handle_t native_dpy)
 
 VkResult
 swapchain_tpl_init(VkDevice device, const VkSwapchainCreateInfoKHR *info,
+				   vk_swapchain_t *chain, tbm_format format);
+
+VkResult
+swapchain_tdm_init(VkDevice device, const VkSwapchainCreateInfoKHR *info,
 				   vk_swapchain_t *chain, tbm_format format);
 
 /* Entry point proto types. */

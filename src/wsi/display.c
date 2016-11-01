@@ -86,6 +86,7 @@ add_tdm_output(vk_physical_device_t *pdev, tdm_output *output)
 			display->built_in_modes[i].prop.parameters.visibleRegion.width = modes[i].hdisplay;
 			display->built_in_modes[i].prop.parameters.visibleRegion.height = modes[i].vdisplay;
 			display->built_in_modes[i].prop.parameters.refreshRate = modes[i].vrefresh;
+			display->built_in_modes[i].tdm_mode = &modes[i];
 		}
 		display->built_in_mode_count = count;
 	}

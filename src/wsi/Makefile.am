@@ -20,6 +20,7 @@ vulkan_wsi_tizen_la_SOURCES = wsi.h				\
 							  surface.c			\
 							  swapchain.c		\
 							  swapchain_tpl.c	\
+							  swapchain_tdm.c	\
 							  display.c			\
 							  allocator.c		\
 							  icd.c				\

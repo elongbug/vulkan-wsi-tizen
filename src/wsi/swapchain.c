@@ -106,7 +106,7 @@ vk_CreateSwapchainKHR(VkDevice							 device,
 			init = swapchain_tpl_init;
 			break;
 		case VK_ICD_WSI_PLATFORM_DISPLAY:
-			init = NULL;
+			init = swapchain_tdm_init;
 			break;
 		default:
 			return VK_ERROR_EXTENSION_NOT_PRESENT;
