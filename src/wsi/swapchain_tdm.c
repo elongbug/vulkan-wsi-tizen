@@ -35,6 +35,7 @@ struct vk_swapchain_tdm {
 	tdm_output				*tdm_output;
 	tdm_layer				*tdm_layer;
 	const tdm_output_mode	*tdm_mode;
+	tdm_output_dpms			 tdm_dpms;
 
 	tbm_surface_queue_h		 tbm_queue;
 
@@ -262,6 +263,8 @@ swapchain_tdm_deinit(VkDevice		 device,
 	vk_swapchain_tdm_t			*swapchain_tdm = chain->backend_data;
 
 	if (swapchain_tdm) {
+		tdm_output_set_dpms(swapchain_tdm->tdm_output, swapchain_tdm->tdm_dpms);
+
 		pthread_cond_destroy(&swapchain_tdm->free_queue_cond);
 		pthread_mutex_destroy(&swapchain_tdm->free_queue_mutex);
 		pthread_mutex_destroy(&swapchain_tdm->front_mutex);
@@ -312,7 +315,8 @@ swapchain_tdm_get_buffers(VkDevice			 device,
 
 	*buffers = swapchain_tdm->buffers;
 
-	tdm_err = tdm_output_set_dpms(swapchain_tdm->tdm_output, TDM_OUTPUT_DPMS_ON);;
+	tdm_err = tdm_output_get_dpms(swapchain_tdm->tdm_output, &swapchain_tdm->tdm_dpms);
+	tdm_err = tdm_output_set_dpms(swapchain_tdm->tdm_output, TDM_OUTPUT_DPMS_ON);
 	VK_CHECK(tdm_err == TDM_ERROR_NONE, return VK_ERROR_SURFACE_LOST_KHR,
 			 "tdm_output_set_dpms failed.\n");
 
@@ -397,6 +401,7 @@ swapchain_tdm_init(VkDevice							 device,
 
 	swapchain_tdm->present_mode = info->presentMode;
 	swapchain_tdm->tdm_mode = disp_mode->tdm_mode;
+	swapchain_tdm->tdm_dpms = TDM_OUTPUT_DPMS_OFF;
 
 	chain->get_buffers = swapchain_tdm_get_buffers;
 	chain->deinit = swapchain_tdm_deinit;
