@@ -11,6 +11,7 @@ BuildRequires: autoconf > 2.64
 BuildRequires: automake >= 1.11
 BuildRequires: libtool >= 2.2
 
+BuildRequires: cmake
 BuildRequires: pkgconfig(tpl-egl)
 BuildRequires: pkgconfig(libtbm)
 BuildRequires: Vulkan-LoaderAndValidationLayers
@@ -41,6 +42,7 @@ Development packages for tizen vulkan driver
 %setup -q
 
 %build
+cmake . -DCMAKE_INSTALL_PREFIX=/usr
 %autogen
 make %{?_smp_mflags}
 

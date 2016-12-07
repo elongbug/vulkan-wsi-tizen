@@ -6,6 +6,7 @@
 *.so
 *.pc
 *.in
+!*.json.in
 !*.pc.in
 aclocal.m4
 autom4te.cache/
