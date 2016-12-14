@@ -126,8 +126,9 @@ swapchain_tpl_init(VkDevice							 device,
 				   tbm_format						 format)
 {
 	tpl_result_t		 res;
-	VkIcdSurfaceWayland	*surface = (VkIcdSurfaceWayland *)(uintptr_t)info->surface;
+	VkIcdSurfaceBase	*surface = (VkIcdSurfaceBase *)(uintptr_t)info->surface;
 	vk_swapchain_tpl_t	*swapchain_tpl;
+	tpl_handle_t		 native_window;
 	int					 tpl_present_mode;
 
 	VkResult error = VK_ERROR_DEVICE_LOST;
@@ -140,11 +141,12 @@ swapchain_tpl_init(VkDevice							 device,
 
 	/* Don't check NULL for display and window. There might be default ones for some systems. */
 
-	swapchain_tpl->tpl_display = vk_get_tpl_display(surface->display);
+	swapchain_tpl->tpl_display = vk_get_tpl_display(surface);
 	VK_CHECK(swapchain_tpl->tpl_display, goto error, "vk_get_tpl_display() failed.\n");
+	native_window = vk_get_tpl_native_window(surface);
 
 	swapchain_tpl->tpl_surface = tpl_surface_create(swapchain_tpl->tpl_display,
-														   surface->surface,
+														   native_window,
 														   TPL_SURFACE_TYPE_WINDOW, format);
 	VK_CHECK(swapchain_tpl->tpl_surface, goto error, "tpl_surface_create() failed.\n");
 

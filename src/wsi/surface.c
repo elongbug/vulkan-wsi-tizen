@@ -45,19 +45,23 @@ vk_GetPhysicalDeviceSurfaceSupportKHR(VkPhysicalDevice	 pdev,
 }
 
 static VkResult
-tpl_get_surface_capabilities(VkIcdSurfaceWayland		*sfc,
+tpl_get_surface_capabilities(VkIcdSurfaceBase			*sfc,
 							 VkSurfaceCapabilitiesKHR	*caps)
 {
 	tpl_display_t		*display;
 	int					 min, max;
 	tpl_result_t		 res;
+	tpl_handle_t		 native_window;
 
-	display = vk_get_tpl_display(sfc->display);
+	display = vk_get_tpl_display(sfc);
 	VK_CHECK(display, return VK_ERROR_DEVICE_LOST, "vk_get_tpl_display() failed.\n");
 
-	res = tpl_display_query_supported_buffer_count_from_native_window(display, sfc->surface, &min, &max);
+	native_window = vk_get_tpl_native_window(sfc);
+	res = tpl_display_query_supported_buffer_count_from_native_window(display, native_window,
+																	  &min, &max);
 	VK_CHECK(res == TPL_ERROR_NONE, return VK_ERROR_DEVICE_LOST,
 			 "tpl_display_query_native_window_supported_buffer_count() failed.\n");
+
 
 	/* TODO: Hard-coded. */
 	caps->minImageCount = min;
@@ -142,8 +146,12 @@ vk_GetPhysicalDeviceSurfaceCapabilitiesKHR(VkPhysicalDevice			 pdev,
 										   VkSurfaceCapabilitiesKHR	*caps)
 {
 	switch (((VkIcdSurfaceBase *)(uintptr_t)surface)->platform) {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wswitch"
+		case VK_ICD_WSI_PLATFORM_TBM_QUEUE:
+#pragma GCC diagnostic pop
 		case VK_ICD_WSI_PLATFORM_WAYLAND:
-			return tpl_get_surface_capabilities((VkIcdSurfaceWayland *)
+			return tpl_get_surface_capabilities((VkIcdSurfaceBase *)
 												(uintptr_t)surface, caps);
 		case VK_ICD_WSI_PLATFORM_DISPLAY:
 			return tdm_get_surface_capabilities((VkIcdSurfaceDisplay *)
@@ -187,7 +195,7 @@ static const struct {
 };
 
 static VkResult
-tpl_get_surface_formats(VkIcdSurfaceWayland	*sfc,
+tpl_get_surface_formats(VkIcdSurfaceBase	*sfc,
 						uint32_t			*format_count,
 						VkSurfaceFormatKHR	*formats)
 {
@@ -284,8 +292,12 @@ vk_GetPhysicalDeviceSurfaceFormatsKHR(VkPhysicalDevice		 pdev,
 									  VkSurfaceFormatKHR	*formats)
 {
 	switch (((VkIcdSurfaceBase *)(uintptr_t)surface)->platform) {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wswitch"
+		case VK_ICD_WSI_PLATFORM_TBM_QUEUE:
+#pragma GCC diagnostic pop
 		case VK_ICD_WSI_PLATFORM_WAYLAND:
-			return tpl_get_surface_formats((VkIcdSurfaceWayland *)
+			return tpl_get_surface_formats((VkIcdSurfaceBase *)
 										   (uintptr_t)surface, format_count, formats);
 		case VK_ICD_WSI_PLATFORM_DISPLAY:
 			return tdm_get_surface_formats((VkIcdSurfaceDisplay *)
@@ -296,22 +308,21 @@ vk_GetPhysicalDeviceSurfaceFormatsKHR(VkPhysicalDevice		 pdev,
 }
 
 static VkResult
-tpl_get_surface_present_modes(VkIcdSurfaceWayland	*sfc,
+tpl_get_surface_present_modes(VkIcdSurfaceBase	*sfc,
 							  uint32_t				*mode_count,
 							  VkPresentModeKHR		*modes)
 {
 	tpl_display_t		*display;
 	tpl_result_t		 res;
+	tpl_handle_t		 native_window;
 	int					 tpl_support_modes;
 	uint32_t			 support_mode_cnt = 0;
 
-	VK_CHECK(sfc->base.platform == VK_ICD_WSI_PLATFORM_WAYLAND, return VK_ERROR_DEVICE_LOST,
-			 "Not supported platform surface.\n");
-
-	display = vk_get_tpl_display(sfc->display);
+	display = vk_get_tpl_display(sfc);
 	VK_CHECK(display, return VK_ERROR_DEVICE_LOST, "vk_get_tpl_display() failed.\n");
 
-	res = tpl_display_query_supported_present_modes_from_native_window(display, sfc->surface,
+	native_window = vk_get_tpl_native_window(sfc);
+	res = tpl_display_query_supported_present_modes_from_native_window(display, native_window,
 																	   &tpl_support_modes);
 	tpl_object_unreference((tpl_object_t *)display);
 	VK_CHECK(res == TPL_ERROR_NONE, return VK_ERROR_DEVICE_LOST,
@@ -385,8 +396,12 @@ vk_GetPhysicalDeviceSurfacePresentModesKHR(VkPhysicalDevice	 pdev,
 										   VkPresentModeKHR	*modes)
 {
 	switch (((VkIcdSurfaceBase *)(uintptr_t)surface)->platform) {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wswitch"
+		case VK_ICD_WSI_PLATFORM_TBM_QUEUE:
+#pragma GCC diagnostic pop
 		case VK_ICD_WSI_PLATFORM_WAYLAND:
-			return tpl_get_surface_present_modes((VkIcdSurfaceWayland *)
+			return tpl_get_surface_present_modes((VkIcdSurfaceBase *)
 												 (uintptr_t)surface, mode_count, modes);
 		case VK_ICD_WSI_PLATFORM_DISPLAY:
 			return tdm_get_surface_present_modes((VkIcdSurfaceDisplay *)

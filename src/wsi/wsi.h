@@ -173,16 +173,49 @@ vk_realloc(const VkAllocationCallbacks *allocator, void *mem, size_t size,
 void
 vk_free(const VkAllocationCallbacks *allocator, void *mem);
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wswitch"
 static inline tpl_display_t *
-vk_get_tpl_display(tpl_handle_t native_dpy)
+vk_get_tpl_display(VkIcdSurfaceBase		*sfc)
 {
-	tpl_display_t *display = tpl_display_create(TPL_BACKEND_WAYLAND_VULKAN_WSI, native_dpy);
+	tpl_backend_type_t type = TPL_BACKEND_UNKNOWN;
+	tpl_handle_t native_dpy = NULL;
+
+	switch (sfc->platform) {
+		case VK_ICD_WSI_PLATFORM_WAYLAND:
+			type = TPL_BACKEND_WAYLAND_VULKAN_WSI;
+			native_dpy = ((VkIcdSurfaceWayland *)(uintptr_t)sfc)->display;
+			break;
+		case VK_ICD_WSI_PLATFORM_TBM_QUEUE:
+			type = TPL_BACKEND_TBM;
+			native_dpy = ((vk_tbm_queue_surface_t *)(uintptr_t)sfc)->bufmgr;
+			break;
+		default:
+			return NULL;
+	}
+
+	tpl_display_t *display = tpl_display_create(type, native_dpy);
 	if (display == NULL) {
 		display = tpl_display_get(native_dpy);
 		tpl_object_reference((tpl_object_t *)display);
 	}
 	return display;
 };
+
+static inline tpl_handle_t
+vk_get_tpl_native_window(VkIcdSurfaceBase		*sfc)
+{
+	switch (sfc->platform) {
+		case VK_ICD_WSI_PLATFORM_WAYLAND:
+			return ((VkIcdSurfaceWayland *)(uintptr_t)sfc)->surface;
+		case VK_ICD_WSI_PLATFORM_TBM_QUEUE:
+			return ((vk_tbm_queue_surface_t *)(uintptr_t)sfc)->tbm_queue;
+		default:
+			return NULL;
+	}
+	return NULL;
+}
+#pragma GCC diagnostic pop
 
 VkResult
 swapchain_tpl_init(VkDevice device, const VkSwapchainCreateInfoKHR *info,

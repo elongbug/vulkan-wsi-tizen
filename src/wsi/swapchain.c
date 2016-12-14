@@ -102,6 +102,10 @@ vk_CreateSwapchainKHR(VkDevice							 device,
 	vk_icd_t			*icd = vk_get_icd();
 
 	switch(((VkIcdSurfaceBase *)(uintptr_t)info->surface)->platform) {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wswitch"
+		case VK_ICD_WSI_PLATFORM_TBM_QUEUE:
+#pragma GCC diagnostic pop
 		case VK_ICD_WSI_PLATFORM_WAYLAND:
 			init = swapchain_tpl_init;
 			break;
