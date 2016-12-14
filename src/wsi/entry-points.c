@@ -64,6 +64,7 @@ static const vk_entry_t	entry_points[] = {
 	VK_ENTRY_POINT(GetPhysicalDeviceWaylandPresentationSupportKHR,INSTANCE),
 	VK_ENTRY_POINT(GetInstanceProcAddr, INSTANCE),
 	VK_ENTRY_POINT(GetDeviceProcAddr, DEVICE),
+	VK_ENTRY_POINT(CreateTBMQueueSurfaceKHR, INSTANCE),
 };
 
 static const vk_entry_t *

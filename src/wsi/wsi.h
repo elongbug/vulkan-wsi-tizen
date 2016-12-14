@@ -48,6 +48,7 @@ typedef struct vk_display			vk_display_t;
 typedef struct vk_display_plane		vk_display_plane_t;
 typedef struct vk_display_mode		vk_display_mode_t;
 typedef struct vk_icd				vk_icd_t;
+typedef struct vk_tbm_queue_surface	vk_tbm_queue_surface_t;
 
 struct vk_icd {
 	void	*lib;
@@ -145,6 +146,12 @@ struct vk_swapchain {
 	vk_buffer_t				*buffers;
 
 	void *backend_data;
+};
+
+struct vk_tbm_queue_surface {
+	VkIcdSurfaceBase base;
+	tbm_bufmgr bufmgr;
+	tbm_surface_queue_h tbm_queue;
 };
 
 VkBool32
@@ -273,4 +280,8 @@ VKAPI_ATTR VkResult VKAPI_CALL
 vk_EnumerateDeviceExtensionProperties(VkPhysicalDevice pdev, const char *layer_name,
 									  uint32_t *count, VkExtensionProperties *extensions);
 
+VKAPI_ATTR VkResult VKAPI_CALL
+vk_CreateTBMQueueSurfaceKHR(VkInstance instance,
+							const tbm_bufmgr bufmgr, const tbm_surface_queue_h queue,
+							const VkAllocationCallbacks *pAllocator, VkSurfaceKHR *surface);
 #endif /* WSI_H */

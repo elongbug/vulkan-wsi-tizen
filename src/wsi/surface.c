@@ -395,3 +395,26 @@ vk_GetPhysicalDeviceSurfacePresentModesKHR(VkPhysicalDevice	 pdev,
 			return VK_ERROR_EXTENSION_NOT_PRESENT;
 	}
 }
+
+VKAPI_ATTR VkResult VKAPI_CALL
+vk_CreateTBMQueueSurfaceKHR(VkInstance					 instance,
+							const tbm_bufmgr			 bufmgr,
+							const tbm_surface_queue_h	 queue,
+							const VkAllocationCallbacks	*allocator,
+							VkSurfaceKHR				 *surface)
+{
+	vk_tbm_queue_surface_t *sfc = NULL;
+
+	allocator = vk_get_allocator(instance, allocator);
+
+	sfc = vk_alloc(allocator, sizeof(vk_tbm_queue_surface_t), VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+	VK_CHECK(sfc, return VK_ERROR_OUT_OF_HOST_MEMORY, "vk_alloc() failed.\n");
+
+	sfc->base.platform = VK_ICD_WSI_PLATFORM_TBM_QUEUE;
+	sfc->bufmgr = bufmgr;
+	sfc->tbm_queue = queue;
+
+	*surface = (VkSurfaceKHR)(uintptr_t)sfc;
+
+	return VK_SUCCESS;
+}
