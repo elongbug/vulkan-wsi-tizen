@@ -49,14 +49,12 @@ make %{?_smp_mflags}
 
 %install
 %make_install
-mkdir -p %{buildroot}/%{TZ_SYS_RO_SHARE}/license
 mkdir -p %{buildroot}/%{_bindir}
-cp -a %{_builddir}/%{buildsubdir}/COPYING %{buildroot}/%{TZ_SYS_RO_SHARE}/license/%{name}
 cp %{_builddir}/%{buildsubdir}/samples/tri %{buildroot}/%{_bindir}
 cp %{_builddir}/%{buildsubdir}/samples/vulkaninfo %{buildroot}/%{_bindir}
 
 %files -n %{name}
-%{TZ_SYS_RO_SHARE}/license/%{name}
+%license COPYING
 %defattr(-,root,root,-)
 %{_libdir}/vulkan/vulkan-wsi-tizen.so
 /etc/vulkan/icd.d/vulkan-wsi-tizen.json
